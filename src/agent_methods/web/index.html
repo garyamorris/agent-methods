@@ -312,6 +312,60 @@
       height: 100%;
     }
 
+    
+    /* Real APIs and Production Scenarios */
+    .api-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      color: #34d399;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.25rem 0.65rem;
+      border-radius: 6px;
+      font-family: 'Fira Code', monospace;
+    }
+    .scenarios-card {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 12px;
+      padding: 1.25rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+    }
+    .scenario-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    .scenario-item {
+      background: #070b13;
+      border: 1px solid #1a2234;
+      border-radius: 8px;
+      padding: 0.9rem 1.1rem;
+      transition: border-color 0.15s;
+    }
+    .scenario-item:hover {
+      border-color: #38bdf8;
+    }
+    .scenario-title {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: #38bdf8;
+      margin-bottom: 0.35rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .scenario-desc {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
     /* Grid layout for lower panels */
     .details-grid {
       display: grid;
@@ -411,6 +465,12 @@
         Model Backend: <strong>DeepSeek (deepseek-chat)</strong>
       </div>
       <div>15 Architectures Active</div>
+
+      <a href="https://github.com/garyamorris/agent-methods" target="_blank" style="color: #818cf8; text-decoration: none; display: flex; align-items: center; gap: 0.4rem; font-weight: 600; font-size: 0.82rem; border: 1px solid #3730a3; padding: 0.25rem 0.65rem; border-radius: 6px; background: rgba(30, 27, 75, 0.4);">
+        <svg height="15" width="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>
+        GitHub Repo
+      </a>
+
     </div>
   </header>
 
@@ -534,6 +594,18 @@
         </div>
       </div>
 
+      
+      <!-- Real-World APIs & Production Scenarios -->
+      <div class="scenarios-card">
+        <div class="canvas-header">
+          <div class="canvas-title">
+            <span>⚡ Live Real Public APIs & Production Scenarios</span>
+          </div>
+          <div id="p-apis" style="display: flex; gap: 0.5rem; flex-wrap: wrap;"></div>
+        </div>
+        <div id="p-scenarios" class="scenario-grid"></div>
+      </div>
+
       <!-- Detailed Breakdown Grid -->
       <div class="details-grid">
         <div class="panel-card">
@@ -558,6 +630,17 @@
   <script>
     const DATA = {
       "1": {
+        apis: ["CoinGecko Live API", "Open-Meteo Global Weather API"],
+        scenarios: [
+        {
+                "title": "Crypto Portfolio & 1-Day 95% Parametric VaR",
+                "desc": "Agent fetches live prices for Bitcoin, Ethereum, and Solana via CoinGecko, calculates total USD portfolio worth, and computes 1-day 95% Value at Risk (VaR) under blended annualized volatility."
+        },
+        {
+                "title": "Global Maritime Logistics & Port Weather Risk",
+                "desc": "Agent queries real-time meteorological conditions via Open-Meteo across Rotterdam and Singapore to detect high wind and storm hazards affecting container crane operations."
+        }
+],
         title: "01. Single Agent ReAct",
         desc: "The foundational perception-action loop. The agent reasons about required data, invokes external tools, and incorporates observations until reaching a final synthesis.",
         topology: "Point-to-Point Loop",
@@ -616,6 +699,17 @@ result = await Runner.run(agent, "What is NVDA price?")`,
         `
       },
       "2": {
+        apis: ["GitHub REST API", "HackerNews Algolia API", "HTTP Latency Sockets"],
+        scenarios: [
+        {
+                "title": "Frontline Open-Source Tech Triage",
+                "desc": "Triage router analyzes user requests and immediately hands off to GitHub Repo Specialist, HackerNews Trend Scout, or Cloud SRE Ping Specialist."
+        },
+        {
+                "title": "Multi-Tier Infrastructure Support",
+                "desc": "Dispatches incoming bug tickets and outage alerts to specialized domain responders based on error codes."
+        }
+],
         title: "02. Router / Triage Dispatcher",
         desc: "Frontline classifier evaluates user intent and passes conversational ownership to a specialized domain agent, exiting the loop.",
         topology: "Star (Hub & Spoke)",
@@ -671,6 +765,17 @@ result = await Runner.run(triage_agent, "API throwing 504")`,
         `
       },
       "3": {
+        apis: ["OpenStreetMap Nominatim Geocoding", "Open-Meteo Weather API", "Wikipedia REST API"],
+        scenarios: [
+        {
+                "title": "Tokyo Cultural Journey & Live Meteorology",
+                "desc": "Flight Specialist geocodes coordinates, hands off to Climate Specialist for live weather, and hands off to Cultural Curator for Senso-ji temple history."
+        },
+        {
+                "title": "Nordic Expedition Planning (Reykjavik)",
+                "desc": "Specialists collaborate in a decentralized mesh to check Iceland coordinates, sub-zero wind chills, and Hallgrimskirkja cultural history."
+        }
+],
         title: "03. Peer-to-Peer Swarm",
         desc: "Decentralized mesh of equals without a central supervisor. Any peer can hand off conversation control to any other peer.",
         topology: "Mesh Network",
@@ -711,6 +816,17 @@ result = await Runner.run(flight_agent, "Book flight to Tokyo, a Ryokan, and tea
         `
       },
       "4": {
+        apis: ["GitHub REST API", "HackerNews Algolia API", "Unit Economics Model"],
+        scenarios: [
+        {
+                "title": "Astral uv Ecosystem Due-Diligence",
+                "desc": "Supervisor dispatches Market Scout to survey HackerNews developer buzz, Tech Architect to inspect GitHub metrics for astral-sh/uv, and Quant to model SaaS LTV:CAC."
+        },
+        {
+                "title": "FastAPI Commercial Enterprise Adoption",
+                "desc": "Supervisor delegates repository velocity, developer sentiment, and enterprise support costs into an executive investment memo."
+        }
+],
         title: "04. Supervisor & Sub-Agents",
         desc: "Hierarchical coordinator delegates subtasks via agent.as_tool(). The supervisor retains conversation ownership while subagents execute in isolated sub-contexts.",
         topology: "Hierarchical Tree",
@@ -756,6 +872,17 @@ supervisor = Agent(
         `
       },
       "5": {
+        apis: ["GitHub Releases API", "GitHub Issues API"],
+        scenarios: [
+        {
+                "title": "Flask Official GitHub Release Notes Pipeline",
+                "desc": "Assembly line pulls recent releases via GitHub REST API, categorizes SemVer changes, drafts release notes, and polishes markdown for publication."
+        },
+        {
+                "title": "Astral uv Issue Triage & Engineering Digest",
+                "desc": "Ingests real GitHub bug reports, categorizes developer pain points, and drafts high-priority triage notes."
+        }
+],
         title: "05. Sequential Pipeline",
         desc: "Deterministic linear assembly line ($A \\to B \\to C \\to D$). Each agent specializes in one lifecycle transformation step.",
         topology: "Linear Chain",
@@ -797,6 +924,17 @@ final_pub = await Runner.run(editorial_reviewer, res_draft.final_output)`,
         `
       },
       "6": {
+        apis: ["GitHub REST API", "HackerNews Algolia API", "CoinGecko Live API"],
+        scenarios: [
+        {
+                "title": "Ethereum Institutional Infrastructure Risk Matrix",
+                "desc": "Fans out 3 concurrent audits via asyncio.gather(): GitHub code health, HackerNews regulatory discussions, and CoinGecko market price volatility, synthesized by Chief Risk Officer."
+        },
+        {
+                "title": "Solana Enterprise Infrastructure Risk Matrix",
+                "desc": "Concurrently audits solana-labs/solana repo, regulatory alerts, and live market volatility in parallel."
+        }
+],
         title: "06. Parallel Fan-Out / Fan-In",
         desc: "Dispatches multiple specialized agents concurrently using asyncio.gather(), then folds all outputs into a synthesis agent.",
         topology: "Fork-Join (Scatter-Gather)",
@@ -845,6 +983,17 @@ synthesis = await Runner.run(cro_agent, f"{r1.final_output}...")`,
         `
       },
       "7": {
+        apis: ["Python AST Compiler Sandbox", "In-Memory Test Assertions Runner"],
+        scenarios: [
+        {
+                "title": "Self-Healing LRU Cache with Real Test Assertions",
+                "desc": "Generator writes LRU cache class; Evaluator executes it in a real Python sandbox with automated unit assertions, feeding exact tracebacks back until passed."
+        },
+        {
+                "title": "Self-Healing Token Bucket Rate Limiter",
+                "desc": "Generator implements rate limiter; Evaluator verifies burst capacity and refill timing in the sandbox."
+        }
+],
         title: "07. Evaluator-Optimizer",
         desc: "Generator produces a candidate solution, and an Evaluator grades against an objective rubric, looping structured critique until score >= threshold.",
         topology: "Cyclic Feedback Loop",
@@ -889,6 +1038,17 @@ synthesis = await Runner.run(cro_agent, f"{r1.final_output}...")`,
         `
       },
       "8": {
+        apis: ["GitHub REST API (Framework Adoption)", "HackerNews Algolia API (Post-Mortem Discussions)"],
+        scenarios: [
+        {
+                "title": "Modular Monolith vs. Microservices Architectural Showdown",
+                "desc": "Two adversarial advocates cite real GitHub adoption metrics and HackerNews post-mortems across opening and rebuttal rounds, adjudicated by CTO judge."
+        },
+        {
+                "title": "Core Ledger Database Architecture (PostgreSQL vs. DynamoDB)",
+                "desc": "Debaters clash over ACID transactional integrity vs global horizontal scale."
+        }
+],
         title: "08. Multi-Agent Debate",
         desc: "Pits opposing advocates against each other across opening and rebuttal rounds, after which an impartial judge synthesizes consensus.",
         topology: "Conversational Arena",
@@ -931,6 +1091,17 @@ verdict = await Runner.run(judge_moderator, all_arguments)`,
         `
       },
       "9": {
+        apis: ["Real SHA256 Backup Disk Audit", "Input/Output Guardrail Firewalls"],
+        scenarios: [
+        {
+                "title": "Payments Database Schema Migration Gate",
+                "desc": "Input guardrail stops prompt injection; execution pauses at mutation tool for operator approval; writes real SHA256 backup file upon authorization."
+        },
+        {
+                "title": "Analytics DB Indexing with Approval Gate",
+                "desc": "DevOps agent pauses before high-stakes database re-indexing, resuming via SDK RunState."
+        }
+],
         title: "09. Human-in-the-Loop & Guardrails",
         desc: "Defense-in-depth safety: input guardrails reject injections, critical tools pause execution for operator approval, and output guardrails block leaks.",
         topology: "Guarded Execution Gate",
@@ -969,6 +1140,17 @@ if result.interruptions:
         `
       },
       "11": {
+        apis: ["GitHub REST Contents API", "Python AST Node Analysis", "HackerNews CVE Security Search"],
+        scenarios: [
+        {
+                "title": "Flask Codebase Modernization Plan-and-Solve",
+                "desc": "Planner decomposes audit; Executor inspects GitHub repo tree, runs AST complexity analysis, and searches advisories; Replanner updates task state."
+        },
+        {
+                "title": "Astral uv Modernization Audit & Health Inspection",
+                "desc": "Closed-loop replanner adapts migration steps dynamically based on live tool observations."
+        }
+],
         title: "11. Dynamic Plan-and-Solve",
         desc: "Adaptive closed-loop orchestration: planner formulates directed steps, executor acts with tools, and replanner amends plan based on live findings.",
         topology: "Closed-Loop Plan Controller",
@@ -1003,6 +1185,17 @@ while not plan.is_complete:
         `
       },
       "12": {
+        apis: ["Persistent Disk JSONL Store", "Live GitHub User Profile API", "Semantic Policy Knowledge Base"],
+        scenarios: [
+        {
+                "title": "Personalized Software Architecture Recommendation",
+                "desc": "Agent recalls user Gary's architectural style, checks company latency SLAs, enriches profile via GitHub API, and commits design decisions to disk."
+        },
+        {
+                "title": "Policy-Compliant Deployment Scheduler",
+                "desc": "Consults episodic preferences and Friday deployment freeze rules to safely schedule production rollouts."
+        }
+],
         title: "12. Memory-Augmented Architecture",
         desc: "Cognitive memory tiers: Working memory queries Episodic (user profile / history) and Semantic (policy vector store) stores to ground responses.",
         topology: "Multi-Tier Cognitive Memory",
@@ -1033,6 +1226,17 @@ while not plan.is_complete:
         `
       },
       "13": {
+        apis: ["GitHub REST API (Engineering)", "HackerNews Algolia API (Marketing/Growth)"],
+        scenarios: [
+        {
+                "title": "Astral uv Product Launch Federation",
+                "desc": "Executive CEO coordinates Engineering Cluster (evaluating GitHub codebase maturity) and Marketing Cluster (evaluating HackerNews sentiment)."
+        },
+        {
+                "title": "OpenAI Agents SDK Platform Commercial Launch",
+                "desc": "Department leads collaborate internally within clusters and return distilled briefings to the CEO."
+        }
+],
         title: "13. Federated Multi-Team Swarm",
         desc: "Two-level federated cluster topology organizing autonomous departments (Engineering vs Marketing). Only team leads communicate across clusters.",
         topology: "Hierarchical Swarm of Swarms",
@@ -1069,6 +1273,17 @@ ceo = Agent(name="CEO", tools=[eng_tool, mktg_tool])`,
         `
       },
       "14": {
+        apis: ["GitHub REST API (Purist & SRE)", "CoinGecko Live API (Quant)"],
+        scenarios: [
+        {
+                "title": "Enterprise Dependency Adoption Vote (Astral uv)",
+                "desc": "Conservative Purist, Staff SRE, and Quant evaluate astral-sh/uv blindly with real API tools; electoral engine tallies confidence-weighted consensus."
+        },
+        {
+                "title": "Treasury Asset Allocation Consensus (Ethereum)",
+                "desc": "Jurors evaluate live CoinGecko market indicators and vote with confidence ratings."
+        }
+],
         title: "14. Consensus Voting & Calibration",
         desc: "Blind parallel voting by heterogeneous jurors with confidence weighting and agreement entropy calibration.",
         topology: "Ensemble Electoral College",
@@ -1104,6 +1319,17 @@ ceo = Agent(name="CEO", tools=[eng_tool, mktg_tool])`,
         `
       },
       "15": {
+        apis: ["GitHub REST API (Tech Adoption)", "Python AST Syntax Validation"],
+        scenarios: [
+        {
+                "title": "High-Throughput Distributed Rate Limiting Search",
+                "desc": "Explores 3 branches (Redis vs Postgres vs CRDT), queries real GitHub adoption statistics, prunes unviable branches, and selects optimal path."
+        },
+        {
+                "title": "Enterprise Vector Database Architecture Search",
+                "desc": "Branching exploration of pgvector vs managed Qdrant vs local FAISS with heuristic trade-off scoring."
+        }
+],
         title: "15. Tree-of-Thought with Rollback",
         desc: "Heuristic search tree exploring multiple candidate branches, scoring state viability, and pruning or backtracking away from dead ends.",
         topology: "Branching Search Tree",
@@ -1139,6 +1365,17 @@ blueprint = await Runner.run(path_synthesizer, winner)`,
         `
       },
       "10": {
+        apis: ["Real HTTP Latency Sockets (httpx)", "HackerNews Algolia Outage Intel"],
+        scenarios: [
+        {
+                "title": "Real-Time Network Latency Spike & Outage SRE Triage",
+                "desc": "Decoupled specialists probe api.github.com / api.deepseek.com, search HackerNews outage alerts, and advance blackboard from INVESTIGATING to RESOLVED."
+        },
+        {
+                "title": "API Gateway Degradation & Failover Triage",
+                "desc": "Network diagnostics, threat hunting, and automated edge traffic remediation coordinate through shared blackboard."
+        }
+],
         title: "10. Event-Driven Shared Blackboard",
         desc: "Agents never invoke each other directly ($O(N^2)$ decoupling). They observe and update a shared, central memory repository (Blackboard).",
         topology: "Shared Memory Pub-Sub",
@@ -1199,6 +1436,24 @@ board.verified_facts.append(threat_res.final_output)`,
       document.getElementById('m-latency').innerText = p.latency;
       document.getElementById('m-context').innerText = p.context;
       document.getElementById('m-blast').innerText = p.blast;
+
+      
+      // Render real API badges
+      const apisContainer = document.getElementById('p-apis');
+      if (apisContainer) {
+        apisContainer.innerHTML = (p.apis || []).map(api => `<span class="api-badge">⚡ ${api}</span>`).join('');
+      }
+
+      // Render dual real-world scenarios
+      const scenariosContainer = document.getElementById('p-scenarios');
+      if (scenariosContainer) {
+        scenariosContainer.innerHTML = (p.scenarios || []).map((sc, i) => `
+          <div class="scenario-item">
+            <div class="scenario-title"><span>📌 Scenario ${i+1}:</span> ${sc.title}</div>
+            <div class="scenario-desc">${sc.desc}</div>
+          </div>
+        `).join('');
+      }
 
       document.getElementById('p-mechanisms').innerHTML = p.mechanisms;
       document.getElementById('p-code').innerText = p.code;

@@ -7,6 +7,7 @@ from .config import (
     is_using_deepseek,
     configure_model_client,
 )
+from .http import fetch_json
 from .ui import (
     console,
     print_header,
@@ -25,6 +26,7 @@ __all__ = [
     "ensure_api_key",
     "is_using_deepseek",
     "configure_model_client",
+    "fetch_json",
     "console",
     "print_header",
     "print_section",

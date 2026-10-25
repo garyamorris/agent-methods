@@ -1,16 +1,23 @@
-"""
-Pattern 01: Single Agent ReAct (Reason + Act with Tools)
-========================================================
+r"""
+Pattern 01: Single Agent ReAct (Reason + Act with Real APIs)
+============================================================
 
 Architecture Overview:
 ----------------------
 The foundational building block of agentic systems. Rather than attempting to answer
 everything in a single zero-shot completion, the agent operates in an autonomous loop:
   1. Perceive: Reads conversation context and user query.
-  2. Reason: Decides whether external information or computation is needed.
-  3. Act: Emits a structured tool call (function name and arguments).
-  4. Observe: The environment executes the tool and returns the observation.
-  5. Repeat or Conclude: Continues until a terminal answer can be generated.
+  2. Reason: Decides what real external information or computation is needed.
+  3. Act: Emits a structured tool call to query a REAL live public API.
+  4. Observe: The environment executes the network call and returns live data.
+  5. Repeat or Conclude: Loops until a synthesized, factually grounded answer is produced.
+
+Real-World Production Scenarios Demonstrated:
+---------------------------------------------
+- Example 1 (Financial Engineering): Queries the live CoinGecko API for real-time crypto prices
+  (Bitcoin, Ethereum, Solana) and calculates 1-day 95% Value at Risk (VaR).
+- Example 2 (Logistics & Supply Chain): Queries the live Open-Meteo Meteorological API for real-time
+  temperatures, wind speeds, and storm risks across global shipping ports (Rotterdam, Singapore, Long Beach).
 
 Communication Topology:
 -----------------------
@@ -21,30 +28,25 @@ Communication Topology:
                                v
                      +-------------------+
                      |    ReAct Agent    | <-----+
-                     |    (gpt-4o-mini)  |       |
+                     |  (deepseek-chat)  |       |
                      +-------------------+       |
                        | (Action)                | (Observation)
                        v                         |
                  +-----------+                   |
-                 | Tool Call | ------------------+
+                 | Real HTTP | ------------------+
+                 |  API Call |  (CoinGecko / Open-Meteo)
                  +-----------+
                        | (Final synthesis)
                        v
     +-------------------------------------------------------+
-    |                     Final Response                    |
+    |           Synthesized, Live-Grounded Report           |
     +-------------------------------------------------------+
 
 When to Use:
 ------------
-- Single-domain tasks requiring external data (APIs, search, calculators, databases).
-- Simpler workflows where multi-agent delegation overhead is unnecessary.
-- Workflows that fit well inside a single context window.
-
-OpenAI Agents SDK Primitives:
------------------------------
-- `Agent`: Encapsulates instructions, model choice, and attached tools.
-- `@function_tool`: Automatically parses Python type hints and docstrings into JSON schemas.
-- `Runner.run(...)`: Manages the multi-turn agent execution loop.
+- Single-domain tasks requiring real-time external data (live market quotes, real weather, search).
+- Calculations and deterministic transformations unsuitable for raw LLM arithmetic.
+- Workflows that easily fit inside a single context window without overwhelming prompt instructions.
 """
 
 import asyncio
@@ -54,6 +56,7 @@ from agents import Agent, Runner, function_tool
 from agent_methods.common import (
     DEFAULT_MODEL,
     ensure_api_key,
+    fetch_json,
     console,
     print_header,
     print_agent_step,
@@ -63,42 +66,84 @@ from agent_methods.common import (
 )
 
 # -------------------------------------------------------------------------
-# Define Tools using @function_tool
+# Real Public API Tools
 # -------------------------------------------------------------------------
 
 @function_tool
-def get_stock_price(symbol: str) -> str:
-    """Fetch current market price and 24h change for a given stock symbol.
+def fetch_live_crypto_quote(coin_ids: str) -> str:
+    """Fetch REAL real-time market prices and 24h price change from CoinGecko API.
 
     Args:
-        symbol: Ticker symbol (e.g. AAPL, NVDA, TSLA).
+        coin_ids: Comma-separated CoinGecko IDs (e.g. 'bitcoin,ethereum,solana').
     """
-    mock_database = {
-        "AAPL": {"price": 234.50, "currency": "USD", "change_24h": "+1.2%"},
-        "NVDA": {"price": 142.80, "currency": "USD", "change_24h": "+3.8%"},
-        "TSLA": {"price": 268.10, "currency": "USD", "change_24h": "-2.1%"},
+    url = "https://api.coingecko.com/api/v3/simple/price"
+    params = {
+        "ids": coin_ids.lower().strip(),
+        "vs_currencies": "usd",
+        "include_24hr_change": "true",
+        "include_market_cap": "true",
     }
-    symbol_clean = symbol.upper().strip()
-    data = mock_database.get(symbol_clean, {"price": 100.0, "currency": "USD", "change_24h": "0.0%"})
-    return json.dumps({"symbol": symbol_clean, **data})
+    data = fetch_json(url, params=params)
+
+    # Fallback to public alternative if CoinGecko rate-limits
+    if "error" in data or not data:
+        # Secondary real live endpoint: Binance ticker API
+        binance_data = fetch_json("https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT")
+        if "lastPrice" in binance_data:
+            return json.dumps({
+                "bitcoin": {
+                    "usd": float(binance_data["lastPrice"]),
+                    "usd_24h_change": float(binance_data["priceChangePercent"]),
+                    "source": "Binance Public API (fallback)",
+                }
+            })
+
+    return json.dumps({"source": "CoinGecko Live API", "data": data})
 
 
 @function_tool
-def calculate_risk_metric(portfolio_value: float, volatility_percentage: float) -> str:
-    """Calculate Value at Risk (VaR 95% confidence interval) for a portfolio.
+def fetch_live_port_weather(latitude: float, longitude: float, port_name: str) -> str:
+    """Fetch REAL live meteorological conditions from the Open-Meteo Global Weather API.
 
     Args:
-        portfolio_value: Total value in USD.
-        volatility_percentage: Annualized volatility (e.g. 25.0 for 25%).
+        latitude: Port latitude coordinate.
+        longitude: Port longitude coordinate.
+        port_name: Name of the global maritime hub (e.g. 'Rotterdam', 'Singapore', 'Long Beach').
     """
-    # Simple parametric 1-day 95% VaR formula: 1.65 * (volatility / sqrt(252)) * value
-    daily_vol = (volatility_percentage / 100.0) / (252 ** 0.5)
+    url = "https://api.open-meteo.com/v1/forecast"
+    params = {
+        "latitude": latitude,
+        "longitude": longitude,
+        "current": "temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code",
+    }
+    data = fetch_json(url, params=params)
+    current = data.get("current", {})
+    return json.dumps({
+        "port": port_name,
+        "source": "Open-Meteo Live API",
+        "temperature_celsius": current.get("temperature_2m"),
+        "wind_speed_kmh": current.get("wind_speed_10m"),
+        "humidity_pct": current.get("relative_humidity_2m"),
+        "is_high_wind_alert": current.get("wind_speed_10m", 0) > 35.0,
+    })
+
+
+@function_tool
+def calculate_portfolio_var(portfolio_value: float, blended_volatility_pct: float) -> str:
+    """Calculate 1-day 95% Parametric Value at Risk (VaR) for an investment portfolio.
+
+    Args:
+        portfolio_value: Total value of assets in USD.
+        blended_volatility_pct: Annualized volatility in percent (e.g. 55.0 for 55%).
+    """
+    daily_vol = (blended_volatility_pct / 100.0) / (252 ** 0.5)
     var_95 = 1.65 * daily_vol * portfolio_value
     return json.dumps({
-        "portfolio_value": portfolio_value,
+        "portfolio_value_usd": portfolio_value,
         "daily_volatility_pct": round(daily_vol * 100, 3),
         "estimated_1day_var_95_usd": round(var_95, 2),
-        "risk_rating": "Moderate" if var_95 < portfolio_value * 0.03 else "High",
+        "maximum_probable_daily_loss": f"${var_95:,.2f}",
+        "risk_rating": "Extreme" if var_95 > portfolio_value * 0.05 else "Moderate",
     })
 
 
@@ -106,18 +151,37 @@ def calculate_risk_metric(portfolio_value: float, volatility_percentage: float) 
 # Agent Factory
 # -------------------------------------------------------------------------
 
-def create_react_agent() -> Agent:
-    """Create a ReAct portfolio risk analyst agent."""
+def create_market_analyst_agent() -> Agent:
+    """Create financial analyst agent equipped with real CoinGecko & VaR tools."""
     return Agent(
-        name="PortfolioRiskAnalyst",
+        name="CryptoPortfolioAnalyst",
         model=DEFAULT_MODEL,
         instructions=(
-            "You are an analytical financial assistant. "
-            "When asked about stocks and portfolio risk, ALWAYS use the provided tools "
-            "to look up prices and calculate risk metrics. "
-            "Synthesize your findings concisely with clear bullet points."
+            "You are a Senior Quantitative Portfolio Analyst. "
+            "When evaluating asset values, ALWAYS call `fetch_live_crypto_quote` to fetch REAL live market prices. "
+            "Then calculate portfolio risk using `calculate_portfolio_var`. "
+            "Present clear, bulleted risk conclusions with exact real prices."
         ),
-        tools=[get_stock_price, calculate_risk_metric],
+        tools=[fetch_live_crypto_quote, calculate_portfolio_var],
+    )
+
+
+# Backward-compatible alias
+create_react_agent = create_market_analyst_agent
+
+
+def create_logistics_agent() -> Agent:
+    """Create global operations agent equipped with real Open-Meteo weather tools."""
+    return Agent(
+        name="MaritimeLogisticsOfficer",
+        model=DEFAULT_MODEL,
+        instructions=(
+            "You are a Global Maritime Logistics Risk Officer. "
+            "When evaluating maritime supply chain disruptions, ALWAYS query `fetch_live_port_weather` "
+            "for the requested shipping hubs. "
+            "Synthesize weather conditions into an operational dispatch alert."
+        ),
+        tools=[fetch_live_port_weather],
     )
 
 
@@ -125,41 +189,50 @@ def create_react_agent() -> Agent:
 # Runner
 # -------------------------------------------------------------------------
 
-async def run(query: str | None = None) -> str:
-    """Execute the ReAct agent loop and inspect execution items."""
+async def run(query: str | None = None, example_id: int = 1) -> str:
+    """Execute ReAct agent loop against real live public APIs."""
     ensure_api_key()
 
-    default_query = (
-        "I hold $50,000 in NVDA and $25,000 in AAPL. "
-        "What are their current prices, and what is my estimated 1-day 95% Value at Risk (VaR) "
-        "assuming a blended volatility of 28% across the $75,000 total portfolio?"
-    )
+    if example_id == 2:
+        default_query = (
+            "Check real-time weather at the Port of Rotterdam (lat 51.92, lon 4.48) "
+            "and Port of Singapore (lat 1.29, lon 103.85). Are there any high-wind hazards "
+            "affecting container crane operations?"
+        )
+        agent = create_logistics_agent()
+        scenario_title = "Example 2: Global Maritime Supply Chain Weather Risk"
+    else:
+        default_query = (
+            "I hold 1.5 Bitcoin and 10 Ethereum. Fetch their REAL live market prices right now, "
+            "calculate my total portfolio value, and compute my estimated 1-day 95% Value at Risk (VaR) "
+            "assuming a blended annual volatility of 55%."
+        )
+        agent = create_market_analyst_agent()
+        scenario_title = "Example 1: Live Crypto Portfolio & VaR Stress-Test"
+
     user_prompt = query or default_query
 
     print_header(
         "Pattern 01: Single Agent ReAct",
-        "Autonomous Reason + Act loop with tool calling and observation feedback",
+        f"Real API Calls: {scenario_title}",
     )
 
     print_explainer(
-        summary="A single autonomous agent perceived by a multi-turn LLM loop that queries external tools.",
-        communication_mechanism="In-context function calling loop (Perceive -> Reason -> Tool Call -> Tool Return -> Answer).",
+        summary="A single autonomous agent executes an in-context ReAct loop querying REAL live public APIs.",
+        communication_mechanism="In-context function calling loop calling real HTTP endpoints (CoinGecko / Open-Meteo).",
         when_to_use=[
-            "Single-domain tasks requiring dynamic calculations or API data fetching.",
+            "Single-domain tasks requiring real-time external data feeds without mock data.",
             "Straightforward workflows without complex role specialization.",
-            "Minimizing overhead and latency compared to multi-agent networks.",
+            "Minimizing token overhead and latency compared to multi-agent networks.",
         ],
     )
 
     console.print(f"[bold cyan]User Query:[/bold cyan] {user_prompt}\n")
 
-    agent = create_react_agent()
-
-    print_agent_step("System", "Starting ReAct loop with Runner.run()...")
+    print_agent_step(agent.name, "Querying real public API tools in ReAct loop...")
     result = await Runner.run(agent, user_prompt)
 
-    # Walk through the generated items to show what happened under the hood
-    print_agent_step("System", f"Execution complete in {len(result.new_items)} execution item(s):")
+    # Trace execution items
     for item in result.new_items:
         item_type = getattr(item, "type", type(item).__name__)
         if item_type == "tool_call_item":
@@ -172,10 +245,10 @@ async def run(query: str | None = None) -> str:
                 parsed_args = {"raw": args}
             print_tool_call(name, parsed_args)
         elif item_type == "tool_call_output_item":
-            output = getattr(item, "output", "")
-            console.print(f"      [dim green]↳ Output:[/dim green] [dim]{str(output)[:120]}...[/dim]")
+            output = str(getattr(item, "output", ""))
+            console.print(f"      [dim green]↳ Real API Response:[/dim green] [dim]{output[:140]}...[/dim]")
 
-    print_result_panel("Synthesized Agent Output", str(result.final_output))
+    print_result_panel(f"Live Grounded Output ({agent.name})", str(result.final_output))
     return str(result.final_output)
 
 

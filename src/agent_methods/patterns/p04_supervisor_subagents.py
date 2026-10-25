@@ -1,19 +1,33 @@
 r"""
-Pattern 04: Supervisor & Subagents (Orchestrator-Workers)
-========================================================
+Pattern 04: Supervisor & Subagents (Orchestrator-Workers with Real APIs)
+========================================================================
 
 Architecture Overview:
 ----------------------
 In the Orchestrator-Workers pattern, a central Supervisor coordinates specialized Subagents.
-Crucially, unlike handoffs where control leaves the current agent, in this pattern
+Crucially, unlike handoffs where conversational ownership transfers away, in this pattern
 subagents are packaged as callable tools using `subagent.as_tool()`.
 
 The Supervisor retains conversational ownership at all times:
   1. Supervisor decomposes a high-level goal into specialized subtasks.
-  2. Supervisor invokes Subagents like tools (`subagent.as_tool()`), providing targeted input.
-  3. Each Subagent executes in an isolated context window, preventing context pollution.
-  4. Subagent returns its distilled conclusion back to the Supervisor.
+  2. Supervisor invokes Subagents like tools (`subagent.as_tool()`), providing targeted inputs.
+  3. Each Subagent executes in an isolated context window, querying REAL public APIs:
+     - Subagent A (Market Scout): Queries real HackerNews Algolia API for developer buzz.
+     - Subagent B (Tech Evaluator): Queries real GitHub REST API for repo velocity & open issues.
+     - Subagent C (Quant Analyst): Runs real unit economics and financial risk calculations.
+  4. Each Subagent returns its distilled conclusion back to the Supervisor.
   5. Supervisor aggregates the subagent findings into an executive synthesis.
+
+Real-World Production Scenarios Demonstrated:
+---------------------------------------------
+- Example 1 (Tech Due Diligence & Commercialization):
+  Supervisor analyzes an open-source project (e.g. 'astral-sh/uv' or 'tiangolo/fastapi') by
+  dispatching the Tech Evaluator to check real GitHub metrics, the Market Scout to search
+  real HackerNews developer discussions, and the Quant Analyst to model SaaS unit economics.
+- Example 2 (Enterprise Infrastructure Migration Due Diligence):
+  Supervisor assesses migrating from legacy stack to modern cloud runtime by combining
+  live GitHub activity on key frameworks, developer community war stories on HackerNews,
+  and hosting cost-to-serve models.
 
 Communication Topology:
 -----------------------
@@ -32,11 +46,11 @@ Communication Topology:
                        v           |           v
              +---------------+     |     +---------------+
              | MarketAnalyst |     |     | FinModeler    |
-             |   Subagent    |     |     |   Subagent    |
+             | (HackerNews)  |     |     | (Unit Econ)   |
              +---------------+     v     +---------------+
                     |     +---------------+      |
                     |     | TechArchitect |      |
-                    |     |   Subagent    |      |
+                    |     | (GitHub API)  |      |
                     |     +---------------+      |
                     \              |             /
                      \---> [Distilled Return] <--/
@@ -47,22 +61,16 @@ Communication Topology:
                        |       Synthesis       |
                        +-----------------------+
 
-Key Difference: Handoff vs. Agent-as-a-Tool:
---------------------------------------------
-- Handoff (`handoff`): Target agent TAKES OVER conversation. Receives full conversation history.
-- Agent-as-Tool (`as_tool`): Originating agent RETAINS conversation. Target receives only generated
-  tool parameters, executes in isolated sub-context, and returns a concise result string.
-
 When to Use:
 ------------
-- Complex projects requiring deep domain specialization (e.g. strategic planning, code generation + review).
-- Context hygiene: preventing verbose research outputs from polluting the main conversation history.
+- Complex projects requiring deep domain specialization and context hygiene.
+- Preventing verbose research outputs from polluting the main executive conversation history.
 - Hierarchical workflows requiring a single coordinator accountable for final output quality.
 
 OpenAI Agents SDK Primitives:
 -----------------------------
-- `subagent.as_tool(tool_name=..., tool_description=...)`: Converts an `Agent` into a `FunctionTool`.
-- `Runner.run(supervisor, input)`: Seamlessly runs the supervisor, which automatically spins up subagent runs!
+- `subagent.as_tool(tool_name=..., tool_description=...)`: Converts an `Agent` into a callable `FunctionTool`.
+- `Runner.run(supervisor, input)`: Seamlessly runs the supervisor, which automatically triggers nested subagent execution!
 """
 
 import asyncio
@@ -71,6 +79,7 @@ from agents import Agent, Runner, function_tool
 from agent_methods.common import (
     DEFAULT_MODEL,
     ensure_api_key,
+    fetch_json,
     console,
     print_header,
     print_agent_step,
@@ -80,120 +89,148 @@ from agent_methods.common import (
 )
 
 # -------------------------------------------------------------------------
-# Subagent Specific Tools
+# Real Public API Tools for Subagents
 # -------------------------------------------------------------------------
 
 @function_tool
-def query_market_trends(industry: str) -> str:
-    """Analyze sector market growth, competitor pricing, and CAGR."""
+def fetch_hn_developer_sentiment(topic: str) -> str:
+    """Search REAL developer sentiment, war stories, and community trends on HackerNews.
+
+    Args:
+        topic: Keyword or project to search (e.g. 'uv package manager', 'fastapi', 'kubernetes').
+    """
+    url = "https://hn.algolia.com/api/v1/search"
+    params = {"query": topic, "tags": "story", "hitsPerPage": 3}
+    data = fetch_json(url, params=params)
+
+    hits = data.get("hits", [])
+    extracted = [
+        {
+            "title": h.get("title"),
+            "url": h.get("url") or f"https://news.ycombinator.com/item?id={h.get('objectID')}",
+            "points": h.get("points"),
+            "comments": h.get("num_comments"),
+            "created_at": h.get("created_at"),
+        }
+        for h in hits
+    ]
+    return json.dumps({"topic": topic, "source": "HackerNews Algolia API", "top_stories": extracted})
+
+
+@function_tool
+def fetch_github_codebase_health(owner: str, repo: str) -> str:
+    """Fetch REAL repository metrics, star counts, and open issues from GitHub REST API.
+
+    Args:
+        owner: Repository owner or org (e.g. 'astral-sh', 'tiangolo', 'pallets').
+        repo: Repository name (e.g. 'uv', 'fastapi', 'flask').
+    """
+    url = f"https://api.github.com/repos/{owner}/{repo}"
+    data = fetch_json(url)
+
+    if "error" in data:
+        return json.dumps({"error": data["error"], "repo": f"{owner}/{repo}"})
+
     return json.dumps({
-        "industry": industry,
-        "market_size_usd": "$24.5 Billion",
-        "projected_cagr": "32.4% over 5 years",
-        "top_competitor_moves": "Incumbents shifting from per-seat pricing to usage/token-based monetization.",
-        "key_risk": "Low barrier to entry for shallow wrapper tools.",
+        "repository": f"{owner}/{repo}",
+        "source": "GitHub REST API",
+        "stars": data.get("stargazers_count"),
+        "open_issues": data.get("open_issues_count"),
+        "forks": data.get("forks_count"),
+        "license": (data.get("license") or {}).get("name", "Unknown"),
+        "last_push": data.get("pushed_at"),
+        "description": data.get("description"),
     })
 
 
 @function_tool
-def benchmark_infrastructure(architecture_style: str) -> str:
-    """Benchmark latency and monthly cloud compute requirements."""
-    return json.dumps({
-        "style": architecture_style,
-        "p99_latency_ms": 185,
-        "estimated_monthly_infra_cost_usd": 4800,
-        "bottleneck": "Model provider rate limits and embedding retrieval latency during peak hours.",
-        "recommendation": "Use semantic caching and streaming responses to mask latency.",
-    })
+def model_unit_economics(cac_usd: float, ltv_usd: float, monthly_churn_pct: float) -> str:
+    """Calculate venture unit economics, LTV:CAC ratio, and capital payback periods.
 
-
-@function_tool
-def model_unit_economics(cac_usd: float, ltv_usd: float, payback_months: int) -> str:
-    """Calculate venture metrics (LTV:CAC ratio, payback velocity)."""
+    Args:
+        cac_usd: Customer Acquisition Cost in USD.
+        ltv_usd: Projected Customer Lifetime Value in USD.
+        monthly_churn_pct: Monthly churn rate as a percentage (e.g. 2.5 for 2.5%).
+    """
     ratio = round(ltv_usd / cac_usd, 2) if cac_usd > 0 else 0.0
-    health = "Excellent (>3x)" if ratio >= 3.0 else "Caution (<3x)"
+    payback_months = round(cac_usd / (ltv_usd * 0.08), 1) if ltv_usd > 0 else 12.0
     return json.dumps({
-        "cac": cac_usd,
-        "ltv": ltv_usd,
+        "cac_usd": cac_usd,
+        "ltv_usd": ltv_usd,
         "ltv_to_cac_ratio": ratio,
-        "payback_months": payback_months,
-        "unit_economics_rating": health,
+        "estimated_payback_months": payback_months,
+        "health_verdict": "Venture Scale (>3.5x)" if ratio >= 3.5 else "Sub-optimal (<3.5x)",
+        "annualized_churn_pct": round(monthly_churn_pct * 12, 1),
     })
 
 
 # -------------------------------------------------------------------------
-# Define Specialized Subagents
+# Define Subagents with Real API Tools
 # -------------------------------------------------------------------------
 
-market_analyst = Agent(
-    name="MarketAnalyst",
+market_analyst_agent = Agent(
+    name="MarketScoutSubagent",
     model=DEFAULT_MODEL,
     instructions=(
-        "You are a Market Intelligence Analyst. "
-        "Use `query_market_trends` to analyze competitor dynamics, market sizing, and industry growth. "
-        "Return a crisp, 2-paragraph executive briefing highlighting market opportunities and risks."
+        "You are an expert Market Intelligence Subagent. "
+        "Call `fetch_hn_developer_sentiment` to gather REAL developer trends and community reception from HackerNews. "
+        "Distill your findings into a 2-3 bullet point summary highlighting commercial opportunities and community risks."
     ),
-    tools=[query_market_trends],
+    tools=[fetch_hn_developer_sentiment],
 )
 
-tech_architect = Agent(
-    name="TechArchitect",
+tech_architect_agent = Agent(
+    name="TechArchitectSubagent",
     model=DEFAULT_MODEL,
     instructions=(
-        "You are a Principal Cloud Solutions Architect. "
-        "Use `benchmark_infrastructure` to evaluate architecture latency, cloud costs, and bottlenecks. "
-        "Return a technical assessment with concrete mitigation recommendations."
+        "You are a Senior Technology Architect Subagent. "
+        "Call `fetch_github_codebase_health` to inspect REAL repository health, stars, and open issues from GitHub. "
+        "Synthesize the repository's maintenance velocity, community backing, and architectural maturity."
     ),
-    tools=[benchmark_infrastructure],
+    tools=[fetch_github_codebase_health],
 )
 
-financial_modeler = Agent(
-    name="FinancialModeler",
+financial_modeler_agent = Agent(
+    name="FinancialModelerSubagent",
     model=DEFAULT_MODEL,
     instructions=(
-        "You are a Venture CFO and financial modeler. "
-        "Use `model_unit_economics` to assess commercial viability, CAC payback, and margins. "
-        "Return a financial viability verdict."
+        "You are a Quantitative Financial Modeler Subagent. "
+        "Call `model_unit_economics` to calculate LTV:CAC viability and capital payback curves. "
+        "Provide a concise recommendation on commercial margin and sustainability."
     ),
     tools=[model_unit_economics],
 )
 
 # -------------------------------------------------------------------------
-# Convert Subagents to Tools for the Supervisor
-# -------------------------------------------------------------------------
-
-market_tool = market_analyst.as_tool(
-    tool_name="consult_market_analyst",
-    tool_description="Delegates market research, competitor analysis, and industry trends to the Market Analyst subagent.",
-)
-
-tech_tool = tech_architect.as_tool(
-    tool_name="consult_tech_architect",
-    tool_description="Delegates technical feasibility, cloud infrastructure benchmarking, and latency analysis to the Tech Architect subagent.",
-)
-
-finance_tool = financial_modeler.as_tool(
-    tool_name="consult_financial_modeler",
-    tool_description="Delegates LTV:CAC, unit economics, and payback velocity analysis to the Financial Modeler subagent.",
-)
-
-# -------------------------------------------------------------------------
-# Define Supervisor Agent
+# Define Supervisor (Wraps Subagents as Tools via as_tool())
 # -------------------------------------------------------------------------
 
 lead_strategist = Agent(
-    name="LeadStrategist",
+    name="LeadEnterpriseStrategist",
     model=DEFAULT_MODEL,
     instructions=(
-        "You are the Chief Strategy Officer orchestrating an executive decision team. "
-        "When given a strategic initiative:\n"
-        "1. Consult your specialist subagent tools: consult_market_analyst, consult_tech_architect, "
-        "and consult_financial_modeler.\n"
-        "2. Do NOT hallucinate the analysis yourself; gather findings from all three specialists.\n"
-        "3. Synthesize their insights into an integrated Executive Strategy Dossier with a definitive "
-        "Go/No-Go recommendation."
+        "You are the Lead Enterprise Strategist and Orchestrator. "
+        "When an executive requests strategic due diligence, you coordinate your 3 specialized subagents:\n"
+        "1. Call `market_analyst_agent` to evaluate community buzz and market sentiment.\n"
+        "2. Call `tech_architect_agent` to evaluate GitHub engineering health and repo velocity.\n"
+        "3. Call `financial_modeler_agent` to model economic sustainability.\n\n"
+        "Do NOT guess repository numbers or market sentiment; always rely on the subagents' tool results. "
+        "Synthesize all 3 returns into a coherent, executive-level investment memo."
     ),
-    tools=[market_tool, tech_tool, finance_tool],
+    tools=[
+        market_analyst_agent.as_tool(
+            tool_name="consult_market_analyst",
+            tool_description="Dispatches the Market Scout to evaluate developer sentiment and community buzz on HackerNews.",
+        ),
+        tech_architect_agent.as_tool(
+            tool_name="consult_tech_architect",
+            tool_description="Dispatches the Tech Architect to inspect repository health, stars, and issues via GitHub REST API.",
+        ),
+        financial_modeler_agent.as_tool(
+            tool_name="consult_financial_modeler",
+            tool_description="Dispatches the Financial Modeler to calculate unit economics and capital payback metrics.",
+        ),
+    ],
 )
 
 
@@ -201,39 +238,49 @@ lead_strategist = Agent(
 # Runner
 # -------------------------------------------------------------------------
 
-async def run(query: str | None = None) -> str:
-    """Execute supervisor orchestrating subagents via agent.as_tool()."""
+async def run(query: str | None = None, example_id: int = 1) -> str:
+    """Execute Supervisor & Subagents orchestrator loop against real public APIs."""
     ensure_api_key()
 
-    default_query = (
-        "We are evaluating launching an enterprise AI Agent Workflow Orchestrator. "
-        "Target CAC is $2,500, expected LTV is $12,000 with a 6-month payback. "
-        "Conduct a full review across market trends, technical infrastructure feasibility, "
-        "and unit economics, and deliver an Executive Go/No-Go Decision Dossier."
-    )
+    if example_id == 2:
+        default_query = (
+            "Perform comprehensive technology due diligence on the open-source repository 'tiangolo/fastapi'. "
+            "Inspect its real GitHub repository health, survey HackerNews developer reception, "
+            "and model unit economics assuming a CAC of $450, an enterprise LTV of $2,400, and 2.0% monthly churn."
+        )
+        scenario_title = "Example 2: FastAPI Enterprise Adoption & Commercialization"
+    else:
+        default_query = (
+            "We are evaluating standardizing our company tooling around 'astral-sh/uv'. "
+            "Please orchestrate your subagents: fetch real GitHub metrics for 'astral-sh/uv', "
+            "gather real HackerNews sentiment on 'uv package manager', and model our developer tool economics "
+            "assuming CAC of $300, LTV of $1,800, and 1.5% monthly churn."
+        )
+        scenario_title = "Example 1: Astral uv Ecosystem Due-Diligence Briefing"
+
     user_prompt = query or default_query
 
     print_header(
-        "Pattern 04: Supervisor & Sub-Agents",
-        "Hierarchical Orchestrator-Workers using `agent.as_tool()` isolation",
+        "Pattern 04: Supervisor & Subagents",
+        f"Orchestrator-Workers with as_tool(): {scenario_title}",
     )
 
     print_explainer(
-        summary="A central supervisor coordinates specialized sub-agents converted into tools. The supervisor retains conversational context.",
-        communication_mechanism="Call-and-return semantics (`subagent.as_tool()`). Subagents run in isolated sub-turns and return distilled summaries.",
+        summary="A central Supervisor coordinates isolated Subagents wrapped as tools via `subagent.as_tool()`, invoking real public APIs.",
+        communication_mechanism="Isolated agent-as-a-tool invocations preventing context pollution while retaining supervisor ownership.",
         when_to_use=[
-            "Complex multidisciplinary goals requiring coordinated specialist perspectives.",
-            "Protecting the main conversation context from verbose sub-agent tool chatter (context hygiene).",
-            "Single accountable decision-maker synthesizing inputs from multiple delegates.",
+            "Complex due diligence requiring independent research threads.",
+            "Keeping main supervisor conversation context clean and concise.",
+            "Orchestrator-Workers workflows where central coordinator must deliver final synthesis.",
         ],
     )
 
     console.print(f"[bold cyan]User Query:[/bold cyan] {user_prompt}\n")
 
-    print_agent_step("LeadStrategist", "Decomposing task and invoking specialist subagents...")
+    print_agent_step(lead_strategist.name, "Supervisor delegating subtasks to subagent tools...")
     result = await Runner.run(lead_strategist, user_prompt)
 
-    # Trace subagent tool calls
+    # Trace supervisor tool calls
     for item in result.new_items:
         item_type = getattr(item, "type", type(item).__name__)
         if item_type == "tool_call_item":
@@ -245,8 +292,11 @@ async def run(query: str | None = None) -> str:
             except Exception:
                 parsed_args = {"raw": args}
             print_tool_call(name, parsed_args)
+        elif item_type == "tool_call_output_item":
+            output = str(getattr(item, "output", ""))
+            console.print(f"      [dim green]↳ Subagent Return:[/dim green] [dim]{output[:140]}...[/dim]")
 
-    print_result_panel("Executive Strategy Dossier (from LeadStrategist)", str(result.final_output))
+    print_result_panel("Consolidated Executive Investment Memo", str(result.final_output))
     return str(result.final_output)
 
 

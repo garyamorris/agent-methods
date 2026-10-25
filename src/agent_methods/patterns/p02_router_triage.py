@@ -1,15 +1,18 @@
-"""
-Pattern 02: Router / Triage Dispatcher (Star Topology)
-======================================================
+r"""
+Pattern 02: Router / Triage Dispatcher (Star Topology with Real APIs)
+=====================================================================
 
 Architecture Overview:
 ----------------------
-In enterprise systems, forcing a single agent to possess every prompt instruction and tool
-leads to prompt bloat, hallucination, tool collisions, and high token costs.
-The Router (or Triage) pattern separates concerns:
-  1. A lightweight "Front Door" Router agent analyzes the user's intent.
-  2. The Router immediately executes a handoff to a specialized domain agent.
-  3. The specialist takes ownership of the conversation and resolves the issue.
+The Router (or Triage) pattern decouples frontline classification from specialized execution.
+A lightweight front-door classifier analyzes incoming inquiries and executes an immediate
+SDK handoff (`handoff(target)`) to a targeted domain specialist equipped with real-world APIs:
+  1. GitHub Repository Health Specialist: Queries the live GitHub REST API for real open issues,
+     stargazer velocity, fork counts, and activity dates.
+  2. HackerNews Tech Trends Specialist: Queries the live HackerNews search API for real community
+     discussions, developer sentiment, and breaking alerts.
+  3. Network Infrastructure Specialist: Executes real HTTP latency probes measuring round-trip
+     connectivity times to major cloud API endpoints.
 
 Communication Topology:
 -----------------------
@@ -26,11 +29,11 @@ Communication Topology:
                 | (handoff)          | (handoff)          | (handoff)
                 v                    v                    v
       +-------------------+ +-------------------+ +-------------------+
-      | BillingSpecialist | | TechnicalSupport  | |  SalesSpecialist  |
+      | GitHub Specialist | | HackerNews Scout  | | Network SRE       |
       +-------------------+ +-------------------+ +-------------------+
                 |                    |                    |
-                v                    v                    v
-         [process_refund]    [run_diagnostics]    [calculate_quote]
+                v (Real HTTP)        v (Real HTTP)        v (Real HTTP)
+        [api.github.com]     [hn.algolia.com]     [Live Ping / Probe]
                 |                    |                    |
                 +--------------------+--------------------+
                                      |
@@ -42,23 +45,19 @@ Communication Topology:
 
 When to Use:
 ------------
-- Multi-domain platforms (Customer Support, IT Service Desks, E-commerce).
-- When specialists need vastly different system instructions, system prompts, or toolsets.
-- Keeping context clean by not leaking billing tools to technical support agents.
-
-OpenAI Agents SDK Primitives:
------------------------------
-- `Agent(handoffs=[agent_a, agent_b, agent_c])`: Declares available handoff targets.
-- The SDK automatically creates handoff tools for each target agent and transfers conversation control.
-- `result.last_agent`: Identifies which specialist handled the query.
+- Multi-domain operations platforms (DevOps, Customer Support, IT helpdesks).
+- Eliminating tool overload and hallucination by keeping specialist prompt instructions isolated.
+- Dispatching user requests to specialized tools without keeping the dispatcher in the loop.
 """
 
 import asyncio
 import json
+import time
 from agents import Agent, Runner, function_tool
 from agent_methods.common import (
     DEFAULT_MODEL,
     ensure_api_key,
+    fetch_json,
     console,
     print_header,
     print_agent_step,
@@ -69,112 +68,139 @@ from agent_methods.common import (
 )
 
 # -------------------------------------------------------------------------
-# Specialist Domain Tools
+# Real Public API Specialist Tools
 # -------------------------------------------------------------------------
 
 @function_tool
-def process_refund(order_id: str, amount_usd: float) -> str:
-    """Process a refund for an erroneous or disputed charge.
+def check_github_repo_health(owner: str, repo: str) -> str:
+    """Fetch REAL real-time repository health, open issues, and stars from the GitHub REST API.
 
     Args:
-        order_id: The order identifier (e.g. ORD-9812).
-        amount_usd: Amount to refund in USD.
+        owner: GitHub organization or username (e.g. 'openai', 'pallets', 'astral-sh').
+        repo: Repository name (e.g. 'openai-agents-python', 'flask', 'uv').
     """
+    url = f"https://api.github.com/repos/{owner}/{repo}"
+    data = fetch_json(url)
+
+    if "error" in data:
+        return json.dumps({"error": data["error"], "repo": f"{owner}/{repo}"})
+
     return json.dumps({
-        "status": "APPROVED",
-        "order_id": order_id,
-        "refunded_amount": amount_usd,
-        "tx_id": "tx_ref_8829141",
-        "message": f"Refund of ${amount_usd:.2f} processed to original payment method.",
+        "repository": f"{owner}/{repo}",
+        "source": "GitHub Public REST API",
+        "stars": data.get("stargazers_count"),
+        "open_issues_count": data.get("open_issues_count"),
+        "forks": data.get("forks_count"),
+        "default_branch": data.get("default_branch"),
+        "license": (data.get("license") or {}).get("name", "None"),
+        "last_pushed_at": data.get("pushed_at"),
+        "description": data.get("description"),
     })
 
 
 @function_tool
-def run_system_diagnostics(service_name: str) -> str:
-    """Inspect server health, API response latency, and error rates.
+def fetch_hackernews_discussions(search_term: str) -> str:
+    """Search REAL trending technology discussions and community sentiment on HackerNews.
 
     Args:
-        service_name: Name of the service (e.g. 'auth-service', 'api-gateway').
+        search_term: Keyword or technology to search (e.g. 'deepseek', 'redis', 'postgres').
     """
-    return json.dumps({
-        "service": service_name,
-        "status": "DEGRADED",
-        "uptime": "99.82%",
-        "current_error_rate": "4.2%",
-        "active_incident": "INC-4029: High connection pool saturation detected in us-east-1.",
-    })
+    url = "https://hn.algolia.com/api/v1/search"
+    params = {"query": search_term, "tags": "story", "hitsPerPage": 3}
+    data = fetch_json(url, params=params)
+
+    hits = data.get("hits", [])
+    extracted = [
+        {
+            "title": h.get("title"),
+            "url": h.get("url") or f"https://news.ycombinator.com/item?id={h.get('objectID')}",
+            "points": h.get("points"),
+            "num_comments": h.get("num_comments"),
+            "created_at": h.get("created_at"),
+        }
+        for h in hits
+    ]
+    return json.dumps({"query": search_term, "source": "HackerNews Algolia API", "top_stories": extracted})
 
 
 @function_tool
-def calculate_enterprise_quote(num_seats: int, tier: str) -> str:
-    """Calculate discounted pricing tier for enterprise volume accounts.
+def probe_endpoint_latency(endpoint_url: str) -> str:
+    """Perform a REAL live HTTP network latency probe to measure round-trip response time.
 
     Args:
-        num_seats: Number of team licenses.
-        tier: License tier ('pro' or 'enterprise').
+        endpoint_url: Target URL to measure (e.g. 'https://api.github.com' or 'https://api.deepseek.com').
     """
-    base_rate = 30 if tier.lower() == "enterprise" else 15
-    discount = 0.20 if num_seats >= 50 else (0.10 if num_seats >= 20 else 0.0)
-    total_monthly = num_seats * base_rate * (1 - discount)
-    return json.dumps({
-        "seats": num_seats,
-        "tier": tier,
-        "discount_applied": f"{int(discount * 100)}%",
-        "total_monthly_usd": round(total_monthly, 2),
-        "annual_contract_value_usd": round(total_monthly * 12, 2),
-    })
+    import httpx
+
+    url = endpoint_url if endpoint_url.startswith("http") else f"https://{endpoint_url}"
+    start = time.perf_counter()
+    try:
+        with httpx.Client(timeout=6.0, follow_redirects=True) as client:
+            resp = client.get(url)
+            elapsed_ms = round((time.perf_counter() - start) * 1000, 2)
+            return json.dumps({
+                "target_url": url,
+                "status_code": resp.status_code,
+                "latency_ms": elapsed_ms,
+                "http_protocol": resp.http_version,
+                "connectivity": "HEALTHY" if resp.status_code < 400 else "DEGRADED",
+            })
+    except Exception as e:
+        return json.dumps({
+            "target_url": url,
+            "error": str(e),
+            "connectivity": "UNREACHABLE",
+        })
 
 
 # -------------------------------------------------------------------------
-# Specialists & Router Setup
+# Define Specialists and Triage Router
 # -------------------------------------------------------------------------
 
-billing_agent = Agent(
-    name="BillingSpecialist",
+github_agent = Agent(
+    name="GitHubHealthSpecialist",
     model=DEFAULT_MODEL,
     instructions=(
-        "You are an empathetic Billing Specialist. "
-        "Help customers with refunds, invoices, subscription changes, and disputed charges. "
-        "When refunding, call the `process_refund` tool."
+        "You are an Open-Source Health & Codebase Specialist. "
+        "Use `check_github_repo_health` to inspect real open issues, star counts, and activity dates on GitHub. "
+        "Synthesize a clear maintenance assessment."
     ),
-    tools=[process_refund],
+    tools=[check_github_repo_health],
 )
 
-tech_support_agent = Agent(
-    name="TechnicalSupportSpecialist",
+hn_trends_agent = Agent(
+    name="HackerNewsCommunitySpecialist",
     model=DEFAULT_MODEL,
     instructions=(
-        "You are an experienced Technical Support Engineer. "
-        "Help developers debug API errors, outages, and connectivity problems. "
-        "Use `run_system_diagnostics` to check real-time service health."
+        "You are a Tech Trends & Community Sentiment Specialist. "
+        "Use `fetch_hackernews_discussions` to search real live HackerNews threads. "
+        "Summarize community developer discourse with titles, scores, and links."
     ),
-    tools=[run_system_diagnostics],
+    tools=[fetch_hackernews_discussions],
 )
 
-sales_agent = Agent(
-    name="SalesSpecialist",
+network_agent = Agent(
+    name="NetworkLatencySpecialist",
     model=DEFAULT_MODEL,
     instructions=(
-        "You are an energetic Enterprise Sales Specialist. "
-        "Help prospective customers understand enterprise volume plans, licensing, and security. "
-        "Use `calculate_enterprise_quote` to provide transparent pricing models."
+        "You are a Cloud Infrastructure & Network SRE. "
+        "Use `probe_endpoint_latency` to measure real round-trip connectivity to live endpoints. "
+        "Evaluate latency benchmarks and service connectivity."
     ),
-    tools=[calculate_enterprise_quote],
+    tools=[probe_endpoint_latency],
 )
 
 triage_agent = Agent(
     name="TriageRouter",
     model=DEFAULT_MODEL,
     instructions=(
-        "You are the frontline triage router. "
-        "Determine the primary intent of the user inquiry and immediately hand off "
-        "to the corresponding specialist:\n"
-        "- Billing inquiries, charges, or refunds -> hand off to BillingSpecialist.\n"
-        "- Technical issues, outages, bugs, or API errors -> hand off to TechnicalSupportSpecialist.\n"
-        "- Pricing, enterprise plans, or bulk seats -> hand off to SalesSpecialist.\n"
-        "Do not attempt to solve domain problems yourself; always hand off promptly."
+        "You are the frontline triage dispatcher. Analyze user queries and immediately hand off:\n"
+        "- GitHub repositories, open-source codebases, stars, issues -> hand off to GitHubHealthSpecialist.\n"
+        "- HackerNews discussions, community sentiment, tech news -> hand off to HackerNewsCommunitySpecialist.\n"
+        "- Network connectivity, latency probes, API responsiveness -> hand off to NetworkLatencySpecialist.\n"
+        "Never attempt to solve these domain problems yourself; always hand off promptly."
     ),
-    handoffs=[billing_agent, tech_support_agent, sales_agent],
+    handoffs=[github_agent, hn_trends_agent, network_agent],
 )
 
 
@@ -182,34 +208,40 @@ triage_agent = Agent(
 # Runner
 # -------------------------------------------------------------------------
 
-async def run(query: str | None = None) -> str:
-    """Execute triage routing with automatic agent handoffs."""
+async def run(query: str | None = None, example_id: int = 1) -> str:
+    """Execute triage routing with real public API handoff execution."""
     ensure_api_key()
 
-    default_query = "Our production API gateway is throwing 504 Gateway Timeouts and our webhook delivery is stalling!"
+    if example_id == 2:
+        default_query = "What is the developer community discussing about DeepSeek right now on HackerNews?"
+    elif example_id == 3:
+        default_query = "Probe the real network latency to https://api.github.com and let me know if it's healthy."
+    else:
+        default_query = "Check the live repository health and open issue count for owner 'astral-sh' repo 'uv'."
+
     user_prompt = query or default_query
 
     print_header(
         "Pattern 02: Router / Triage Dispatcher",
-        "Frontline intent classifier delegating to specialized domain agents",
+        "Frontline intent classifier delegating to specialists with REAL APIs",
     )
 
     print_explainer(
-        summary="A dispatcher router classifies user queries and hands off conversation ownership to targeted specialists.",
-        communication_mechanism="Zero-shot intent classification followed by native SDK handoff (transfer of conversation state).",
+        summary="A dispatcher router classifies queries and hands off conversation control to specialized domain agents backed by real HTTP endpoints.",
+        communication_mechanism="Zero-shot intent classification followed by native SDK handoff to live-API specialist.",
         when_to_use=[
-            "Large applications with distinct functional domains (Billing vs Support vs Sales).",
-            "Eliminating tool overload and hallucinations from bloated agent prompts.",
-            "Specialist agents requiring different personas, system instructions, or tool capabilities.",
+            "Multi-domain developer platforms routing between codebases, news sentiment, and infrastructure probes.",
+            "Eliminating prompt bloat and tool conflicts across unrelated functional areas.",
+            "Specialist agents requiring dedicated personas and distinct API clients.",
         ],
     )
 
     console.print(f"[bold cyan]User Query:[/bold cyan] {user_prompt}\n")
 
-    print_agent_step("TriageRouter", "Analyzing user intent and routing...")
+    print_agent_step("TriageRouter", "Analyzing user intent and routing to live specialist...")
     result = await Runner.run(triage_agent, user_prompt)
 
-    # Inspect the trajectory
+    # Inspect trajectory
     for item in result.new_items:
         item_type = getattr(item, "type", type(item).__name__)
         if "handoff" in item_type.lower():

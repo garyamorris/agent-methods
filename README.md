@@ -84,23 +84,23 @@ graph TD
     end
 ```
 
-| # | Pattern Name | Communication Topology | OpenAI Agents SDK Primitive | Primary Use Case |
+| # | Pattern Name | Communication Topology | Real Public APIs & Execution | Dual Production Scenarios |
 | :-: | :--- | :--- | :--- | :--- |
-| **01** | [**Single Agent ReAct**](src/agent_methods/patterns/p01_single_agent_react.py) | Point-to-Point Tool Loop | `Agent`, `@function_tool`, `Runner.run` | Single-domain data lookup & computation |
-| **02** | [**Router / Triage Dispatcher**](src/agent_methods/patterns/p02_router_triage.py) | Star (Hub & Spoke) | `Agent(handoffs=[...])` | Enterprise helpdesk & intent routing |
-| **03** | [**Peer-to-Peer Swarm**](src/agent_methods/patterns/p03_peer_handoffs.py) | Mesh Network | Bidirectional `handoffs` | Fluid, multi-step customer journeys |
-| **04** | [**Supervisor & Sub-Agents**](src/agent_methods/patterns/p04_supervisor_subagents.py) | Hierarchical Tree | `subagent.as_tool(...)` | Multidisciplinary executive planning |
-| **05** | [**Sequential Pipeline**](src/agent_methods/patterns/p05_pipeline_sequential.py) | Linear Assembly Line | Chained `Runner.run(...)` | Publishing, code generation, ETL |
-| **06** | [**Parallel Fan-Out / Fan-In**](src/agent_methods/patterns/p06_parallel_fanout_fanin.py) | Fork-Join (Scatter-Gather)| `asyncio.gather(*runners)` | High-speed multi-perspective risk audits |
-| **07** | [**Evaluator-Optimizer**](src/agent_methods/patterns/p07_evaluator_optimizer.py) | Cyclic Feedback Loop | Pydantic Schemas + Iteration Gate | Algorithmic code synthesis & contract review |
-| **08** | [**Multi-Agent Debate**](src/agent_methods/patterns/p08_debate_consensus.py) | Conversational Arena | Cross-rebuttal turn orchestration | High-stakes architectural decision analysis |
-| **09** | [**Human-in-the-Loop & Guardrails**](src/agent_methods/patterns/p09_human_in_the_loop.py) | Guarded Intercept Gate | `@input_guardrail`, `needs_approval=True` | Destructive mutations & sensitive commands |
-| **10** | [**Event-Driven Blackboard**](src/agent_methods/patterns/p10_shared_blackboard.py) | Shared Memory Pub-Sub | Central state model + reactive agents | Complex SOC cyber-incident triage |
-| **11** | [**Dynamic Plan-and-Solve**](src/agent_methods/patterns/p11_plan_and_solve.py) | Closed-Loop Plan Controller| Dynamic State Machine + Tools | Multi-step software refactoring & migration |
-| **12** | [**Memory-Augmented Architecture**](src/agent_methods/patterns/p12_memory_augmented.py) | Multi-Tier Cognitive Memory| Episodic + Semantic Query Tools | Persistent personal companions & CRM agents |
-| **13** | [**Federated Multi-Team Swarm**](src/agent_methods/patterns/p13_federated_teams.py) | Swarm of Swarms | Two-Level Nested `as_tool()` | Conway's Law enterprise organizations |
-| **14** | [**Consensus Voting & Calibration**](src/agent_methods/patterns/p14_consensus_voting.py) | Ensemble Electoral College | Blind `asyncio.gather` + Weighting | High-stakes zero-day CVE scoring & triage |
-| **15** | [**Tree-of-Thought with Rollback**](src/agent_methods/patterns/p15_reflection_tree_search.py) | Branching Search Tree | Heuristic Branch Evaluator + Pruning | High-assurance global optimization |
+| **01** | [**Single Agent ReAct**](src/agent_methods/patterns/p01_single_agent_react.py) | Point-to-Point Tool Loop | CoinGecko Live API, Open-Meteo Weather API | **1:** Crypto Portfolio 1-day 95% Parametric VaR<br/>**2:** Global Maritime Shipping Port Weather Hazards |
+| **02** | [**Router / Triage Dispatcher**](src/agent_methods/patterns/p02_router_triage.py) | Star (Hub & Spoke) | GitHub REST API, HackerNews Algolia, Real HTTP Socket Pings | **1:** Frontline Open-Source Tech Health Triage<br/>**2:** Multi-Tier Infrastructure Incident Dispatch |
+| **03** | [**Peer-to-Peer Swarm**](src/agent_methods/patterns/p03_peer_handoffs.py) | Mesh Network | Nominatim Geocoding, Open-Meteo Climate, Wikipedia REST API | **1:** Tokyo Cultural Journey & Live Meteorology<br/>**2:** Nordic Expedition Planning (Reykjavik) |
+| **04** | [**Supervisor & Sub-Agents**](src/agent_methods/patterns/p04_supervisor_subagents.py) | Hierarchical Tree | GitHub REST API, HackerNews Sentiment, SaaS Unit Economics | **1:** Astral `uv` Ecosystem Due-Diligence Briefing<br/>**2:** FastAPI Commercial Enterprise Adoption |
+| **05** | [**Sequential Pipeline**](src/agent_methods/patterns/p05_pipeline_sequential.py) | Linear Assembly Line | GitHub Releases API, GitHub Issues API | **1:** Flask Official GitHub Release Notes Pipeline<br/>**2:** Astral `uv` Issue Triage & Engineering Digest |
+| **06** | [**Parallel Fan-Out / Fan-In**](src/agent_methods/patterns/p06_parallel_fanout_fanin.py) | Fork-Join (Scatter-Gather)| GitHub REST API, HackerNews Algolia, CoinGecko Live API | **1:** Ethereum Institutional Infrastructure Risk Matrix<br/>**2:** Solana Enterprise Infrastructure Risk Matrix |
+| **07** | [**Evaluator-Optimizer**](src/agent_methods/patterns/p07_evaluator_optimizer.py) | Cyclic Feedback Loop | Python AST Compiler Sandbox, In-Memory Test Assertions | **1:** Self-Healing LRU Cache with Real Test Assertions<br/>**2:** Self-Healing Token Bucket Rate Limiter |
+| **08** | [**Multi-Agent Debate**](src/agent_methods/patterns/p08_debate_consensus.py) | Conversational Arena | GitHub REST Repo Adoption, HackerNews Engineering Post-Mortems | **1:** Modular Monolith vs Microservices Showdown<br/>**2:** Core Ledger Database Architecture (Postgres vs DynamoDB) |
+| **09** | [**Human-in-the-Loop & Guardrails**](src/agent_methods/patterns/p09_human_in_the_loop.py) | Guarded Intercept Gate | SHA256 Backup Disk Audit, Input/Output Guardrails | **1:** Payments Database Schema Migration Gate<br/>**2:** Analytics DB Indexing with Approval Checkpoint |
+| **10** | [**Event-Driven Blackboard**](src/agent_methods/patterns/p10_shared_blackboard.py) | Shared Memory Pub-Sub | Real HTTP Latency Sockets (`httpx`), HackerNews Outage Intel | **1:** Real-Time Cloud Network Latency Spike & SRE Triage<br/>**2:** API Gateway Degradation & Edge Failover |
+| **11** | [**Dynamic Plan-and-Solve**](src/agent_methods/patterns/p11_plan_and_solve.py) | Closed-Loop Plan Controller| GitHub REST Contents API, Python AST Nodes, HackerNews CVEs | **1:** Flask Codebase Modernization Plan-and-Solve<br/>**2:** Astral `uv` Modernization Audit & Health Inspection |
+| **12** | [**Memory-Augmented Architecture**](src/agent_methods/patterns/p12_memory_augmented.py) | Multi-Tier Cognitive Memory| Persistent Disk JSONL Store, Live GitHub Profile API, Semantic Rules| **1:** Personalized Software Architecture Recommendation<br/>**2:** Policy-Compliant Deployment Scheduler |
+| **13** | [**Federated Multi-Team Swarm**](src/agent_methods/patterns/p13_federated_teams.py) | Swarm of Swarms | GitHub REST API (Eng), HackerNews Algolia (Marketing) | **1:** Astral `uv` Product Launch Federation<br/>**2:** OpenAI Agents SDK Platform Commercial Launch |
+| **14** | [**Consensus Voting & Calibration**](src/agent_methods/patterns/p14_consensus_voting.py) | Ensemble Electoral College | GitHub REST API (Purist & SRE), CoinGecko Live API (Quant) | **1:** Enterprise Dependency Adoption Vote (Astral `uv`)<br/>**2:** Treasury Asset Allocation Consensus (Ethereum) |
+| **15** | [**Tree-of-Thought with Rollback**](src/agent_methods/patterns/p15_reflection_tree_search.py) | Branching Search Tree | GitHub REST API Adoption Metrics, Python AST Syntax Validation | **1:** High-Throughput Distributed Rate Limiting Search<br/>**2:** Enterprise Vector Database Architecture Search |
 
 ---
 

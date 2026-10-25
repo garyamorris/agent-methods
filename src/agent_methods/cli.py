@@ -31,8 +31,8 @@ def display_patterns_table() -> None:
     console.print()
 
 
-async def run_pattern(pattern_key: str, custom_input: str | None = None) -> None:
-    """Execute a selected pattern by number or ID."""
+async def run_pattern(pattern_key: str, custom_input: str | None = None, example_id: int = 1) -> None:
+    """Execute a selected pattern by number or ID, choosing a real-world scenario."""
     p_info = PATTERNS.get(pattern_key)
     if not p_info:
         # Search by id
@@ -43,15 +43,20 @@ async def run_pattern(pattern_key: str, custom_input: str | None = None) -> None
 
     if not p_info:
         console.print(f"[bold red]Error:[/bold red] Unknown pattern '{pattern_key}'.")
-        console.print("Valid choices are 1 through 10.")
+        console.print("Valid choices are 1 through 15.")
         return
 
     mod = p_info["module"]
     try:
+        # Pass example_id if the module run() accepts it
+        import inspect
+        sig = inspect.signature(mod.run)
+        kwargs = {}
         if custom_input:
-            await mod.run(custom_input)
-        else:
-            await mod.run()
+            kwargs["query"] = custom_input
+        if "example_id" in sig.parameters:
+            kwargs["example_id"] = example_id
+        await mod.run(**kwargs)
     except Exception as e:
         console.print(f"\n[bold red]Execution Error in {p_info['name']}:[/bold red] {e}\n")
 
@@ -106,7 +111,13 @@ def main() -> None:
             print_pattern_explanation(target_key)
             return
 
-        asyncio.run(run_pattern(choice))
+        ex_choice = Prompt.ask(
+            "[bold yellow]Select real-world scenario[/bold yellow] (1=Primary production case, 2=Secondary case)",
+            choices=["1", "2"],
+            default="1",
+        )
+
+        asyncio.run(run_pattern(choice, example_id=int(ex_choice)))
         return
 
     cmd = args[0].lower()
@@ -123,19 +134,44 @@ def main() -> None:
     elif cmd in ("explain", "info") and len(args) > 1:
         print_pattern_explanation(args[1])
     elif cmd in ("run",) and len(args) > 1:
-        user_input = " ".join(args[2:]) if len(args) > 2 else None
-        asyncio.run(run_pattern(args[1], user_input))
+        pattern_arg = args[1]
+        example_id = 1
+        query_parts = []
+        skip_next = False
+        for i, a in enumerate(args[2:]):
+            if skip_next:
+                skip_next = False
+                continue
+            if a in ("--example", "-e") and i + 1 < len(args[2:]):
+                example_id = int(args[2:][i + 1])
+                skip_next = True
+            else:
+                query_parts.append(a)
+        user_input = " ".join(query_parts) if query_parts else None
+        asyncio.run(run_pattern(pattern_arg, user_input, example_id=example_id))
     elif cmd in PATTERNS:
-        user_input = " ".join(args[1:]) if len(args) > 1 else None
-        asyncio.run(run_pattern(cmd, user_input))
+        example_id = 1
+        query_parts = []
+        skip_next = False
+        for i, a in enumerate(args[1:]):
+            if skip_next:
+                skip_next = False
+                continue
+            if a in ("--example", "-e") and i + 1 < len(args[1:]):
+                example_id = int(args[1:][i + 1])
+                skip_next = True
+            else:
+                query_parts.append(a)
+        user_input = " ".join(query_parts) if query_parts else None
+        asyncio.run(run_pattern(cmd, user_input, example_id=example_id))
     else:
         console.print("[bold red]Usage:[/bold red]")
-        console.print("  python main.py                     (Interactive Menu)")
-        console.print("  python main.py list                (List all 15 patterns)")
-        console.print("  python main.py run <1-15> [query]  (Run a specific pattern)")
-        console.print("  python main.py explain <1-15>      (Read architecture explainer)")
-        console.print("  python main.py visualizer          (Launch interactive browser visualizer)")
-        console.print("  python main.py benchmark           (Run comparative latency & stability benchmark)")
+        console.print("  python main.py                              (Interactive Menu with Scenario Selection)")
+        console.print("  python main.py list                         (List all 15 patterns)")
+        console.print("  python main.py run <1-15> [--example 1|2]   (Run a specific pattern & real-world example)")
+        console.print("  python main.py explain <1-15>               (Read architecture & real API docstring)")
+        console.print("  python main.py visualizer                   (Launch interactive browser visualizer)")
+        console.print("  python main.py benchmark                    (Run comparative latency & stability benchmark)")
 
 
 if __name__ == "__main__":

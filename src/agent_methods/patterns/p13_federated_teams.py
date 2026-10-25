@@ -1,19 +1,27 @@
 r"""
-Pattern 13: Federated Multi-Team Swarm (Hierarchical Swarm of Swarms)
-=====================================================================
+Pattern 13: Federated Multi-Team Swarm (Hierarchical Swarm of Swarms with Real APIs)
+===================================================================================
 
 Architecture Overview:
 ----------------------
 As multi-agent systems expand to dozens of specialized agents, flat peer meshes degrade
-into chaotic handoff loops, while flat supervisor hierarchies suffer from bottlenecking.
+into chaotic handoff loops, while flat supervisor hierarchies suffer from severe bottlenecking.
 The Federated Multi-Team Swarm organizes agents according to Conway's Law:
-  1. Executive Steering Council: High-level strategic coordinator.
+  1. Executive Steering Council (CEO Agent): High-level strategic coordinator.
   2. Autonomous Functional Clusters (Teams):
-     - Engineering Cluster: Lead Architect + Backend Specialist + Cloud SRE.
-     - Growth & Marketing Cluster: CMO + Growth Analyst + Content Strategist.
+     - Engineering Cluster: Engineering Lead coordinates technical metrics via the GitHub REST API.
+     - Growth & Marketing Cluster: Marketing Lead coordinates launch sentiment via the HackerNews Algolia API.
   3. Internal vs External Communication:
-     - Inside a cluster, peer agents collaborate closely using specialized tools.
-     - Across clusters, only Team Leads communicate, presenting distilled department briefings.
+     - Inside a cluster, peer agents collaborate closely using specialized domain tools.
+     - Across clusters, only Team Leads communicate, presenting distilled department briefings via `as_tool()`.
+
+Real-World Production Scenarios Demonstrated:
+---------------------------------------------
+- Example 1 (Full-Lifecycle Product Launch Federation):
+  Executive CEO coordinates simultaneous launch readiness: Engineering cluster verifies GitHub code
+  maturity and releases, while Marketing cluster surveys developer sentiment and viral reach on HackerNews.
+- Example 2 (Enterprise Cloud Service Modernization):
+  Engineering evaluates architecture and latency budgets; Growth evaluates enterprise TAM and competitor positioning.
 
 Communication Topology:
 -----------------------
@@ -23,24 +31,17 @@ Communication Topology:
                        +-----------------------+
                                /       \
                               /         \
-         (delegates project) /           \ (delegates campaign)
+         (as_tool: EngLead)  /           \ (as_tool: MktgLead)
                             v             v
                 +---------------+     +---------------+
                 |  Engineering  |     |   Marketing   |
                 |   Team Lead   |     |   Team Lead   |
                 +---------------+     +---------------+
-                    |       |             |       |
-           (peers)  |       |    (peers)  |       |
-                    v       v             v       v
-               +---------+ +---------+  +---------+ +---------+
-               | Backend | | CloudSRE|  | Growth  | | Content |
-               | Engineer| | Special |  | Analyst | | Writer  |
-               +---------+ +---------+  +---------+ +---------+
-                    \       /             \       /
-                     v     v               v     v
-                [Eng Deliverable]     [Marketing Deliverable]
-                       \                     /
-                        +--------->v<-------+
+                        |                     |
+                        v (Real Tools)        v (Real Tools)
+                [GitHub REST API]     [HackerNews Algolia API]
+                        \                     /
+                         +--------->v<-------+
                                    |
                        +-----------------------+
                        |  Unified Enterprise   |
@@ -66,6 +67,7 @@ from agents import Agent, Runner, function_tool
 from agent_methods.common import (
     DEFAULT_MODEL,
     ensure_api_key,
+    fetch_json,
     console,
     print_header,
     print_agent_step,
@@ -75,114 +77,100 @@ from agent_methods.common import (
 )
 
 # -------------------------------------------------------------------------
-# Cluster 1: Engineering Tools & Agents
+# Real Public API Tools for Clusters
 # -------------------------------------------------------------------------
 
 @function_tool
-def design_api_contracts(service_name: str) -> str:
-    """Draft OpenAPI 3.1 specification and gRPC proto interfaces."""
+def fetch_github_team_velocity(owner: str, repo: str) -> str:
+    """Fetch REAL repository release cadence, stars, and open issues from GitHub REST API.
+
+    Args:
+        owner: GitHub organization or username (e.g. 'astral-sh', 'openai').
+        repo: Repository name (e.g. 'uv', 'openai-agents-python').
+    """
+    url = f"https://api.github.com/repos/{owner}/{repo}"
+    data = fetch_json(url)
+
+    if "error" in data:
+        return json.dumps({"error": data["error"], "target": f"{owner}/{repo}"})
+
     return json.dumps({
-        "service": service_name,
-        "endpoints": ["POST /v1/checkout", "GET /v1/status", "POST /v1/webhooks"],
-        "auth": "OAuth 2.0 Mutual TLS (mTLS)",
-        "p99_budget_ms": 120,
+        "repo": f"{owner}/{repo}",
+        "source": "GitHub REST API",
+        "stargazers": data.get("stargazers_count"),
+        "open_issues": data.get("open_issues_count"),
+        "forks": data.get("forks_count"),
+        "license": (data.get("license") or {}).get("name", "Proprietary"),
+        "last_pushed_at": data.get("pushed_at"),
     })
 
 
 @function_tool
-def plan_cloud_topology(region: str) -> str:
-    """Define multi-region Kubernetes cluster and egress NAT gateways."""
-    return json.dumps({
-        "primary_region": region,
-        "nodes": "EKS Auto-scaling Group (m6i.xlarge)",
-        "database": "Aurora PostgreSQL Serverless v2 Multi-AZ",
-        "estimated_monthly_usd": 3200,
-    })
+def fetch_hackernews_market_sentiment(product_keyword: str) -> str:
+    """Fetch REAL developer sentiment and trending community discussions on HackerNews.
 
+    Args:
+        product_keyword: Product name or keyword (e.g. 'uv package manager', 'agent framework').
+    """
+    url = "https://hn.algolia.com/api/v1/search"
+    params = {"query": product_keyword, "tags": "story", "hitsPerPage": 3}
+    data = fetch_json(url, params=params)
+
+    hits = data.get("hits", [])
+    extracted = [
+        {"title": h.get("title"), "points": h.get("points"), "comments": h.get("num_comments")}
+        for h in hits
+    ]
+    return json.dumps({"keyword": product_keyword, "source": "HackerNews Algolia API", "stories": extracted})
+
+
+# -------------------------------------------------------------------------
+# Cluster Leads and Agents
+# -------------------------------------------------------------------------
 
 engineering_lead = Agent(
-    name="EngineeringLead",
+    name="VPofEngineeringLead",
     model=DEFAULT_MODEL,
     instructions=(
-        "You are the VP of Engineering leading the technical organization. "
-        "When given a product initiative:\n"
-        "1. Use `design_api_contracts` to specify architecture protocols.\n"
-        "2. Use `plan_cloud_topology` to design resilient infrastructure.\n"
-        "3. Deliver a consolidated Engineering Briefing covering API contracts, infrastructure cost, and rollout phases."
+        "You are the VP of Engineering. "
+        "When evaluating technical readiness, call `fetch_github_team_velocity` to query the REAL codebase metrics on GitHub. "
+        "Distill code health, maintenance velocity, and technical architecture into an executive briefing."
     ),
-    tools=[design_api_contracts, plan_cloud_topology],
+    tools=[fetch_github_team_velocity],
 )
 
-
-# -------------------------------------------------------------------------
-# Cluster 2: Marketing & Growth Tools & Agents
-# -------------------------------------------------------------------------
-
-@function_tool
-def analyze_target_personas(vertical: str) -> str:
-    """Analyze buyer personas, pain points, and CAC expectations."""
-    return json.dumps({
-        "vertical": vertical,
-        "ideal_customer": "Staff Software Engineers and Heads of Infrastructure",
-        "primary_pain_point": "High latency and fragility in existing multi-agent integrations",
-        "recommended_cac_usd": 1800,
-    })
-
-
-@function_tool
-def plan_go_to_market_channels(budget_usd: float) -> str:
-    """Allocate marketing budget across developer community, conferences, and technical content."""
-    return json.dumps({
-        "budget": budget_usd,
-        "allocations": {
-            "developer_advocacy_oss": "45%",
-            "technical_podcasts_sponsorship": "30%",
-            "hacker_news_launch_pr": "25%",
-        },
-        "expected_lead_velocity": "450 qualified MQLs / month",
-    })
-
-
 marketing_lead = Agent(
-    name="MarketingLead",
+    name="ChiefMarketingOfficerLead",
     model=DEFAULT_MODEL,
     instructions=(
         "You are the Chief Marketing Officer (CMO). "
-        "When given a product initiative:\n"
-        "1. Use `analyze_target_personas` to profile the target developer demographic.\n"
-        "2. Use `plan_go_to_market_channels` to allocate the launch budget.\n"
-        "3. Deliver an integrated Go-To-Market strategy briefing."
+        "When planning a launch campaign, call `fetch_hackernews_market_sentiment` to analyze REAL developer discussions on HackerNews. "
+        "Formulate a go-to-market messaging strategy and launch timeline based on developer sentiment."
     ),
-    tools=[analyze_target_personas, plan_go_to_market_channels],
-)
-
-
-# -------------------------------------------------------------------------
-# Executive Council (Top-Level Coordinator)
-# -------------------------------------------------------------------------
-
-eng_tool = engineering_lead.as_tool(
-    tool_name="consult_engineering_team",
-    tool_description="Delegates full technical architecture, API design, and cloud topology to the Engineering department.",
-)
-
-mktg_tool = marketing_lead.as_tool(
-    tool_name="consult_marketing_team",
-    tool_description="Delegates go-to-market strategy, persona profiling, and launch budget allocation to the Marketing department.",
+    tools=[fetch_hackernews_market_sentiment],
 )
 
 executive_ceo = Agent(
-    name="ExecutiveCEO",
+    name="ExecutiveChiefExecutiveOfficer",
     model=DEFAULT_MODEL,
     instructions=(
-        "You are the Chief Executive Officer directing an enterprise product launch. "
-        "To execute the initiative:\n"
-        "1. Consult your Engineering department via `consult_engineering_team`.\n"
-        "2. Consult your Marketing department via `consult_marketing_team`.\n"
-        "3. Synthesize both department briefings into an Executive Unified Launch Dossier "
-        "aligning engineering delivery milestones with go-to-market campaigns."
+        "You are the Chief Executive Officer (CEO) and Head of the Executive Council. "
+        "You oversee two autonomous clusters:\n"
+        "1. Engineering Cluster (via `consult_engineering_team`)\n"
+        "2. Marketing & Growth Cluster (via `consult_marketing_team`)\n\n"
+        "Delegate to both department heads to gather technical status and go-to-market plans. "
+        "Synthesize their distilled returns into a Unified Enterprise Launch Dossier."
     ),
-    tools=[eng_tool, mktg_tool],
+    tools=[
+        engineering_lead.as_tool(
+            tool_name="consult_engineering_team",
+            tool_description="Dispatches the Engineering Cluster to audit repository metrics and technical readiness via GitHub API.",
+        ),
+        marketing_lead.as_tool(
+            tool_name="consult_marketing_team",
+            tool_description="Dispatches the Marketing Cluster to analyze developer sentiment and plan launch strategy via HackerNews API.",
+        ),
+    ],
 )
 
 
@@ -190,48 +178,54 @@ executive_ceo = Agent(
 # Runner
 # -------------------------------------------------------------------------
 
-async def run(initiative: str | None = None) -> str:
-    """Execute federated multi-team swarm orchestration."""
+async def run(query: str | None = None, example_id: int = 1) -> str:
+    """Execute federated multi-team swarm with cross-cluster tool delegation."""
     ensure_api_key()
 
-    default_init = (
-        "Launch 'AgentMesh': A real-time, low-latency multi-agent networking runtime for enterprise developers. "
-        "Total initial launch budget is $40,000, deployment target is AWS us-east-1."
-    )
-    user_prompt = initiative or default_init
+    if example_id == 2:
+        default_query = (
+            "Coordinate our enterprise launch around 'openai/openai-agents-python'. "
+            "Engineering must verify the GitHub repository readiness, and Marketing must "
+            "survey current agent framework discussions on HackerNews to design our announcement strategy."
+        )
+        scenario_title = "Example 2: Agents SDK Platform Commercial Launch"
+    else:
+        default_query = (
+            "We are preparing an enterprise commercial launch around 'astral-sh/uv'. "
+            "Have Engineering inspect the repository velocity on GitHub, "
+            "and have Marketing survey developer reception on HackerNews to formulate our launch strategy."
+        )
+        scenario_title = "Example 1: Astral uv Product Launch Federation"
+
+    user_prompt = query or default_query
 
     print_header(
         "Pattern 13: Federated Multi-Team Swarm",
-        "Two-level federated cluster topology organizing autonomous departments",
+        f"Hierarchical Swarm of Swarms: {scenario_title}",
     )
 
     print_explainer(
-        summary="An executive steering agent coordinates semi-autonomous department leads (Engineering & Marketing), who each lead specialized sub-teams.",
-        communication_mechanism="Hierarchical federation: cluster-internal tool collaboration rolled up into inter-department team lead tools (`as_tool`).",
+        summary="Executive Council coordinates autonomous Engineering and Marketing clusters. Department leads invoke REAL public APIs (GitHub, HackerNews) and return distilled briefings to the CEO.",
+        communication_mechanism="Hierarchical cluster federation where department leads are exposed as tools (`as_tool`) to the executive coordinator.",
         when_to_use=[
-            "Large-scale enterprise workflows with distinct functional domains.",
-            "Eliminating chaotic cross-talk between developers and marketing specialists.",
-            "Structuring agent architectures to mirror organizational Conway's Law.",
+            "Enterprise workflows requiring cross-functional collaboration (Eng + Mktg + Ops).",
+            "Eliminating flat mesh anarchy as agent headcounts scale.",
+            "Keeping specialized technical and commercial vocabulary appropriately partitioned.",
         ],
     )
 
-    console.print(f"[bold cyan]Enterprise Initiative:[/bold cyan] {user_prompt}\n")
+    console.print(f"[bold cyan]Executive Directive:[/bold cyan] {user_prompt}\n")
 
-    print_agent_step("ExecutiveCEO", "Directing department leads across Engineering and Marketing...")
+    print_agent_step(executive_ceo.name, "CEO delegating tasks across autonomous department clusters...")
     result = await Runner.run(executive_ceo, user_prompt)
 
-    # Trace tool calls
+    # Trace CEO tool calls
     for item in result.new_items:
-        item_type = getattr(item, "type", type(item).__name__)
-        if item_type == "tool_call_item":
+        if getattr(item, "type", "") == "tool_call_item":
             raw = getattr(item, "raw_item", None)
             name = getattr(raw, "name", "tool")
             args = getattr(raw, "arguments", "{}")
-            try:
-                parsed_args = json.loads(args) if isinstance(args, str) else args
-            except Exception:
-                parsed_args = {"raw": args}
-            print_tool_call(name, parsed_args)
+            print_tool_call(name, args)
 
     print_result_panel("Unified Enterprise Launch Dossier", str(result.final_output))
     return str(result.final_output)

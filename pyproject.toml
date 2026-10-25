@@ -1,0 +1,43 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "agent-methods"
+version = "0.1.0"
+description = "An interactive educational testbed of multi-agent architectures, communication topologies, and orchestration patterns built with the OpenAI Agents SDK."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+    { name = "Gary Morris", email = "gary.a.morris@gmail.com" }
+]
+keywords = [
+    "agents",
+    "multi-agent",
+    "openai",
+    "openai-agents",
+    "llm",
+    "swarm",
+    "orchestration",
+    "agent-architecture",
+    "education"
+]
+dependencies = [
+    "openai-agents>=0.24.0",
+    "python-dotenv>=1.0.0",
+    "rich>=13.0.0",
+    "pydantic>=2.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+]
+
+[project.scripts]
+agent-methods = "agent_methods.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/agent_methods"]

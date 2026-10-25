@@ -1,0 +1,101 @@
+"""Registry of Multi-Agent Communication Architectures & Patterns."""
+
+from . import (
+    p01_single_agent_react,
+    p02_router_triage,
+    p03_peer_handoffs,
+    p04_supervisor_subagents,
+    p05_pipeline_sequential,
+    p06_parallel_fanout_fanin,
+    p07_evaluator_optimizer,
+    p08_debate_consensus,
+    p09_human_in_the_loop,
+    p10_shared_blackboard,
+)
+
+PATTERNS = {
+    "1": {
+        "id": "p01",
+        "name": "Single Agent ReAct",
+        "description": "Perception-action loop with dynamic tool calling and observation feedback",
+        "module": p01_single_agent_react,
+        "topology": "Point-to-Point Loop",
+    },
+    "2": {
+        "id": "p02",
+        "name": "Router / Triage Dispatcher",
+        "description": "Frontline intent classifier delegating to specialized domain agents",
+        "module": p02_router_triage,
+        "topology": "Star (Hub & Spoke)",
+    },
+    "3": {
+        "id": "p03",
+        "name": "Peer-to-Peer Swarm",
+        "description": "Decentralized mesh topology where peers hand off control fluidly",
+        "module": p03_peer_handoffs,
+        "topology": "Mesh Network",
+    },
+    "4": {
+        "id": "p04",
+        "name": "Supervisor & Sub-Agents",
+        "description": "Hierarchical Orchestrator-Workers using isolated agent.as_tool() invocations",
+        "module": p04_supervisor_subagents,
+        "topology": "Hierarchical Tree",
+    },
+    "5": {
+        "id": "p05",
+        "name": "Sequential Pipeline",
+        "description": "Deterministic linear assembly line with stage-by-stage transformations",
+        "module": p05_pipeline_sequential,
+        "topology": "Linear Chain",
+    },
+    "6": {
+        "id": "p06",
+        "name": "Parallel Fan-Out / Fan-In",
+        "description": "High-concurrency scatter-gather pattern minimizing latency across independent agents",
+        "module": p06_parallel_fanout_fanin,
+        "topology": "Fork-Join (Scatter-Gather)",
+    },
+    "7": {
+        "id": "p07",
+        "name": "Evaluator-Optimizer",
+        "description": "Generator-Critic feedback loop iterating until quality convergence",
+        "module": p07_evaluator_optimizer,
+        "topology": "Cyclic Feedback Loop",
+    },
+    "8": {
+        "id": "p08",
+        "name": "Multi-Agent Debate & Deliberation",
+        "description": "Adversarial multi-turn deliberation mitigating biases through structured rebuttal",
+        "module": p08_debate_consensus,
+        "topology": "Conversational Arena",
+    },
+    "9": {
+        "id": "p09",
+        "name": "Human-in-the-Loop & Guardrails",
+        "description": "Enforcing safety boundaries, prompt injection traps, and human approval checkpoints",
+        "module": p09_human_in_the_loop,
+        "topology": "Guarded Execution Gate",
+    },
+    "10": {
+        "id": "p10",
+        "name": "Event-Driven Shared Blackboard",
+        "description": "Decoupled multi-agent coordination via central shared state repository",
+        "module": p10_shared_blackboard,
+        "topology": "Shared Memory Pub-Sub",
+    },
+}
+
+__all__ = [
+    "PATTERNS",
+    "p01_single_agent_react",
+    "p02_router_triage",
+    "p03_peer_handoffs",
+    "p04_supervisor_subagents",
+    "p05_pipeline_sequential",
+    "p06_parallel_fanout_fanin",
+    "p07_evaluator_optimizer",
+    "p08_debate_consensus",
+    "p09_human_in_the_loop",
+    "p10_shared_blackboard",
+]

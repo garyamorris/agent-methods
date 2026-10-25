@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Methods Lab — Interactive Multi-Agent Topologies Visualizer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --surface: #111827;
+      --surface-border: #1f2937;
+      --surface-hover: #1e293b;
+      --text: #f3f4f6;
+      --text-muted: #9ca3af;
+      --accent: #6366f1;
+      --accent-glow: rgba(99, 102, 241, 0.25);
+      --green: #10b981;
+      --yellow: #f59e0b;
+      --red: #ef4444;
+      --cyan: #06b6d4;
+      --magenta: #d946ef;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* Top Navigation */
+    header {
+      background: rgba(17, 24, 39, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--surface-border);
+      padding: 0.85rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .brand-icon {
+      font-size: 1.6rem;
+      background: linear-gradient(135deg, #6366f1, #d946ef);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .brand-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .brand-badge {
+      font-size: 0.7rem;
+      background: #1e1b4b;
+      color: #818cf8;
+      border: 1px solid #3730a3;
+      padding: 0.15rem 0.5rem;
+      border-radius: 9999px;
+      font-weight: 600;
+    }
+
+    .header-meta {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+    .provider-tag {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #34d399;
+      padding: 0.25rem 0.65rem;
+      border-radius: 6px;
+      font-weight: 500;
+    }
+    .pulse-dot {
+      width: 7px;
+      height: 7px;
+      background: #10b981;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #10b981;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+
+    /* Layout */
+    .container {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      flex: 1;
+      height: calc(100vh - 61px);
+    }
+
+    /* Sidebar Navigation */
+    .sidebar {
+      background: var(--surface);
+      border-right: 1px solid var(--surface-border);
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .sidebar-header {
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--surface-border);
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .category-group {
+      padding: 0.75rem 0;
+      border-bottom: 1px solid var(--surface-border);
+    }
+    .category-title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #64748b;
+      padding: 0.4rem 1.25rem;
+    }
+
+    .pattern-btn {
+      width: 100%;
+      text-align: left;
+      padding: 0.65rem 1.25rem;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: all 0.15s ease;
+      font-family: inherit;
+    }
+    .pattern-btn:hover {
+      background: var(--surface-hover);
+      color: var(--text);
+    }
+    .pattern-btn.active {
+      background: rgba(99, 102, 241, 0.15);
+      color: #a5b4fc;
+      border-left: 3px solid var(--accent);
+      font-weight: 600;
+    }
+    .pattern-num {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.75rem;
+      opacity: 0.6;
+      margin-right: 0.5rem;
+    }
+
+    /* Main Stage */
+    .stage {
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      background: #090d16;
+      padding: 1.5rem 2rem;
+      gap: 1.5rem;
+    }
+
+    /* Pattern Banner */
+    .pattern-banner {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 12px;
+      padding: 1.5rem 1.75rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      position: relative;
+      overflow: hidden;
+    }
+    .pattern-banner::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #6366f1, #d946ef, #06b6d4);
+    }
+    .banner-title-area h2 {
+      font-size: 1.45rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.35rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .banner-desc {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      max-width: 720px;
+      line-height: 1.5;
+    }
+    .banner-tags {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.85rem;
+    }
+    .tag {
+      font-size: 0.75rem;
+      padding: 0.2rem 0.55rem;
+      border-radius: 4px;
+      background: #1e293b;
+      color: #94a3b8;
+      font-family: 'Fira Code', monospace;
+    }
+    .tag-topology {
+      background: rgba(245, 158, 11, 0.15);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+    .tag-primitive {
+      background: rgba(6, 182, 212, 0.15);
+      color: #22d3ee;
+      border: 1px solid rgba(6, 182, 212, 0.3);
+    }
+
+    /* Visual Simulation Canvas */
+    .canvas-card {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .canvas-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .canvas-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .playback-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .ctrl-btn {
+      background: #1e293b;
+      border: 1px solid var(--surface-border);
+      color: var(--text);
+      padding: 0.35rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .ctrl-btn:hover { background: #334155; }
+    .ctrl-btn.primary {
+      background: var(--accent);
+      border-color: #4f46e5;
+    }
+    .ctrl-btn.primary:hover { background: #4f46e5; }
+
+    .graph-viewport {
+      width: 100%;
+      height: 380px;
+      background: #060911;
+      border: 1px solid #1a2234;
+      border-radius: 8px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    svg.topology-svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Grid layout for lower panels */
+    .details-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+    .panel-card {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 12px;
+      padding: 1.25rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+    }
+    .panel-header {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      border-bottom: 1px solid var(--surface-border);
+      padding-bottom: 0.65rem;
+    }
+    .panel-body {
+      font-size: 0.875rem;
+      line-height: 1.6;
+      color: #cbd5e1;
+    }
+    .panel-body ul {
+      padding-left: 1.25rem;
+      margin-top: 0.35rem;
+    }
+    .panel-body li {
+      margin-bottom: 0.35rem;
+    }
+
+    pre.code-snippet {
+      background: #060911;
+      border: 1px solid #1e293b;
+      border-radius: 6px;
+      padding: 1rem;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.8rem;
+      color: #e2e8f0;
+      overflow-x: auto;
+      line-height: 1.45;
+    }
+
+    /* Metric Badges */
+    .metric-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.75rem;
+    }
+    .metric-box {
+      background: #060911;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+    .metric-label {
+      font-size: 0.7rem;
+      color: #64748b;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .metric-val {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    /* Animated packet */
+    .packet {
+      fill: #22d3ee;
+      filter: drop-shadow(0 0 6px #06b6d4);
+      animation: float 2.5s infinite linear;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <span class="brand-icon">⚡</span>
+      <span class="brand-title">Agent Methods Lab</span>
+      <span class="brand-badge">OpenAI Agents SDK v0.24</span>
+    </div>
+    <div class="header-meta">
+      <div class="provider-tag">
+        <span class="pulse-dot"></span>
+        Model Backend: <strong>DeepSeek (deepseek-chat)</strong>
+      </div>
+      <div>15 Architectures Active</div>
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <span>Architectures</span>
+        <span style="font-family: 'Fira Code'; font-size: 0.75rem;">15 Patterns</span>
+      </div>
+
+      <div class="category-group">
+        <div class="category-title">Single Agent Loops</div>
+        <button class="pattern-btn active" onclick="selectPattern('1')">
+          <span><span class="pattern-num">01</span> Single Agent ReAct</span>
+        </button>
+        <button class="pattern-btn" onclick="selectPattern('11')">
+          <span><span class="pattern-num">11</span> Dynamic Plan-and-Solve</span>
+        </button>
+        <button class="pattern-btn" onclick="selectPattern('12')">
+          <span><span class="pattern-num">12</span> Memory-Augmented</span>
+        </button>
+        <button class="pattern-btn" onclick="selectPattern('15')">
+          <span><span class="pattern-num">15</span> Tree-of-Thought</span>
+        </button>
+      </div>
+
+      <div class="category-group">
+        <div class="category-title">Delegation & Routing</div>
+        <button class="pattern-btn" onclick="selectPattern('2')">
+          <span><span class="pattern-num">02</span> Router / Triage</span>
+        </button>
+        <button class="pattern-btn" onclick="selectPattern('3')">
+          <span><span class="pattern-num">03</span> Peer-to-Peer Swarm</span>
+        </button>
+        <button class="pattern-btn" onclick="selectPattern('4')">
+          <span><span class="pattern-num">04</span> Supervisor & Sub-Agents</span>
+        </button>
+        <button class="pattern-btn" onclick="selectPattern('13')">
+          <span><span class="pattern-num">13</span> Federated Teams</span>
+        </button>
+      </div>
+
+      <div class="category-group">
+        <div class="category-title">Dataflow & Concurrency</div>
+        <button class="pattern-btn" onclick="selectPattern('5')">
+          <span><span class="pattern-num">05</span> Sequential Pipeline</span>
+        </button>
+        <button class="pattern-btn" onclick="selectPattern('6')">
+          <span><span class="pattern-num">06</span> Parallel Fan-Out/In</span>
+        </button>
+        <button class="pattern-btn" onclick="selectPattern('7')">
+          <span><span class="pattern-num">07</span> Evaluator-Optimizer</span>
+        </button>
+      </div>
+
+      <div class="category-group">
+        <div class="category-title">Governance & Consensus</div>
+        <button class="pattern-btn" onclick="selectPattern('8')">
+          <span><span class="pattern-num">08</span> Multi-Agent Debate</span>
+        </button>
+        <button class="pattern-btn" onclick="selectPattern('9')">
+          <span><span class="pattern-num">09</span> Human-in-the-Loop</span>
+        </button>
+        <button class="pattern-btn" onclick="selectPattern('10')">
+          <span><span class="pattern-num">10</span> Shared Blackboard</span>
+        </button>
+        <button class="pattern-btn" onclick="selectPattern('14')">
+          <span><span class="pattern-num">14</span> Consensus Voting</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Stage -->
+    <main class="stage">
+      <!-- Banner -->
+      <div class="pattern-banner">
+        <div class="banner-title-area">
+          <h2 id="p-title">01. Single Agent ReAct</h2>
+          <div class="banner-desc" id="p-desc">Perception-action loop with dynamic tool calling and observation feedback.</div>
+          <div class="banner-tags">
+            <span class="tag tag-topology" id="p-topology">Topology: Point-to-Point Loop</span>
+            <span class="tag tag-primitive" id="p-primitive">Primitive: Runner.run() + @function_tool</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Metrics Row -->
+      <div class="metric-row">
+        <div class="metric-box">
+          <span class="metric-label">Communication Style</span>
+          <span class="metric-val" id="m-comm" style="font-size: 0.85rem; color: #38bdf8;">In-Context Loop</span>
+        </div>
+        <div class="metric-box">
+          <span class="metric-label">Latency Profile</span>
+          <span class="metric-val" id="m-latency" style="color: #4ade80;">Low (Direct)</span>
+        </div>
+        <div class="metric-box">
+          <span class="metric-label">Context Scope</span>
+          <span class="metric-val" id="m-context" style="color: #fbbf24;">Single Session</span>
+        </div>
+        <div class="metric-box">
+          <span class="metric-label">Failure Blast Radius</span>
+          <span class="metric-val" id="m-blast" style="color: #f472b6;">Contained</span>
+        </div>
+      </div>
+
+      <!-- Canvas -->
+      <div class="canvas-card">
+        <div class="canvas-header">
+          <div class="canvas-title">
+            <span>🌐 Interactive Topology & Message Routing Map</span>
+          </div>
+          <div class="playback-controls">
+            <button class="ctrl-btn primary" onclick="pulseAnimation()">Simulate Message Flow</button>
+            <button class="ctrl-btn" onclick="resetAnimation()">Reset</button>
+          </div>
+        </div>
+        <div class="graph-viewport" id="viewport">
+          <!-- Dynamic SVG injected via JS -->
+        </div>
+      </div>
+
+      <!-- Detailed Breakdown Grid -->
+      <div class="details-grid">
+        <div class="panel-card">
+          <div class="panel-header">
+            <span>🧠 How Agents Communicate & When to Use</span>
+          </div>
+          <div class="panel-body" id="p-mechanisms">
+            <!-- Dynamic mechanics -->
+          </div>
+        </div>
+
+        <div class="panel-card">
+          <div class="panel-header">
+            <span>💻 OpenAI Agents SDK Implementation</span>
+          </div>
+          <pre class="code-snippet" id="p-code"><!-- Dynamic code --></pre>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const DATA = {
+      "1": {
+        title: "01. Single Agent ReAct",
+        desc: "The foundational perception-action loop. The agent reasons about required data, invokes external tools, and incorporates observations until reaching a final synthesis.",
+        topology: "Point-to-Point Loop",
+        primitive: "Agent + @function_tool + Runner.run",
+        comm: "In-Context Tool Loop",
+        latency: "Low (Direct)",
+        context: "Single Session",
+        blast: "Contained",
+        mechanics: `
+          <p><strong>Communication Protocol:</strong> In-context function calling loop (Perceive &rarr; Reason &rarr; Tool Call &rarr; Observation &rarr; Synthesize).</p>
+          <p style="margin-top:0.5rem"><strong>When to Use:</strong></p>
+          <ul>
+            <li>Single-domain tasks requiring external data (APIs, calculators, database queries).</li>
+            <li>Minimizing overhead and token costs compared to multi-agent networks.</li>
+            <li>Workflows that easily fit within a single context window.</li>
+          </ul>
+        `,
+        code: `from agents import Agent, Runner, function_tool
+
+@function_tool
+def get_stock_price(symbol: str) -> str:
+    return "NVDA: $142.80 (+3.8%)"
+
+agent = Agent(
+    name="PortfolioAnalyst",
+    model="deepseek-chat",
+    instructions="Analyze portfolio and fetch prices.",
+    tools=[get_stock_price]
+)
+
+result = await Runner.run(agent, "What is NVDA price?")`,
+        svg: `
+          <svg viewBox="0 0 600 300" class="topology-svg">
+            <defs>
+              <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#6366f1"/>
+                <stop offset="100%" stop-color="#a855f7"/>
+              </linearGradient>
+            </defs>
+            <circle cx="100" cy="150" r="36" fill="#1e293b" stroke="#3b82f6" stroke-width="2"/>
+            <text x="100" y="155" text-anchor="middle" fill="#fff" font-size="12" font-weight="bold">User</text>
+
+            <path d="M 136 150 L 260 150" stroke="#6366f1" stroke-width="2" stroke-dasharray="4"/>
+
+            <circle cx="300" cy="150" r="42" fill="#1e1b4b" stroke="#6366f1" stroke-width="3"/>
+            <text x="300" y="146" text-anchor="middle" fill="#fff" font-size="12" font-weight="bold">ReAct Agent</text>
+            <text x="300" y="162" text-anchor="middle" fill="#93c5fd" font-size="9">deepseek-chat</text>
+
+            <path d="M 320 115 C 360 60, 440 60, 480 115" fill="none" stroke="#22d3ee" stroke-width="2" marker-end="url(#arrow)"/>
+            <path d="M 480 185 C 440 240, 360 240, 320 185" fill="none" stroke="#10b981" stroke-width="2"/>
+
+            <circle cx="500" cy="150" r="38" fill="#042f2e" stroke="#14b8a6" stroke-width="2"/>
+            <text x="500" y="146" text-anchor="middle" fill="#fff" font-size="11" font-weight="bold">Stock Tool</text>
+            <text x="500" y="160" text-anchor="middle" fill="#5eead4" font-size="9">@function_tool</text>
+          </svg>
+        `
+      },
+      "2": {
+        title: "02. Router / Triage Dispatcher",
+        desc: "Frontline classifier evaluates user intent and passes conversational ownership to a specialized domain agent, exiting the loop.",
+        topology: "Star (Hub & Spoke)",
+        primitive: "Agent(handoffs=[agent_a, agent_b])",
+        comm: "Zero-Shot Intent Handoff",
+        latency: "Low (1 Dispatch Hop)",
+        context: "Transcript Handed Off",
+        blast: "Isolated to Target",
+        mechanics: `
+          <p><strong>Communication Protocol:</strong> Front-door classification followed by native SDK handoff (<code>handoff(target)</code>).</p>
+          <p style="margin-top:0.5rem"><strong>When to Use:</strong></p>
+          <ul>
+            <li>Multichannel enterprise helpdesks (Billing vs Technical Support vs Sales).</li>
+            <li>Preventing tool collisions and hallucination from mega-prompts.</li>
+            <li>Clean separation of department responsibilities.</li>
+          </ul>
+        `,
+        code: `billing_agent = Agent(name="BillingSpecialist", instructions="Handle refunds.")
+tech_agent = Agent(name="TechSupport", instructions="Debug outages.")
+
+triage_agent = Agent(
+    name="TriageRouter",
+    model="deepseek-chat",
+    instructions="Classify user query and hand off immediately.",
+    handoffs=[billing_agent, tech_agent]
+)
+
+result = await Runner.run(triage_agent, "API throwing 504")`,
+        svg: `
+          <svg viewBox="0 0 600 300" class="topology-svg">
+            <circle cx="90" cy="150" r="32" fill="#1e293b" stroke="#64748b" stroke-width="2"/>
+            <text x="90" y="154" text-anchor="middle" fill="#fff" font-size="11">User</text>
+
+            <path d="M 122 150 L 210 150" stroke="#6366f1" stroke-width="2"/>
+
+            <circle cx="250" cy="150" r="40" fill="#1e1b4b" stroke="#6366f1" stroke-width="3"/>
+            <text x="250" y="146" text-anchor="middle" fill="#fff" font-size="11" font-weight="bold">Router</text>
+            <text x="250" y="160" text-anchor="middle" fill="#a5b4fc" font-size="9">Triage</text>
+
+            <path d="M 285 130 L 410 70" stroke="#f59e0b" stroke-width="2" stroke-dasharray="3"/>
+            <path d="M 290 150 L 410 150" stroke="#10b981" stroke-width="2" stroke-dasharray="3"/>
+            <path d="M 285 170 L 410 230" stroke="#ec4899" stroke-width="2" stroke-dasharray="3"/>
+
+            <circle cx="450" cy="70" r="32" fill="#451a03" stroke="#f59e0b" stroke-width="2"/>
+            <text x="450" y="74" text-anchor="middle" fill="#fff" font-size="10">Billing</text>
+
+            <circle cx="450" cy="150" r="32" fill="#064e3b" stroke="#10b981" stroke-width="2"/>
+            <text x="450" y="154" text-anchor="middle" fill="#fff" font-size="10">Tech Support</text>
+
+            <circle cx="450" cy="230" r="32" fill="#500724" stroke="#ec4899" stroke-width="2"/>
+            <text x="450" y="234" text-anchor="middle" fill="#fff" font-size="10">Sales</text>
+          </svg>
+        `
+      },
+      "3": {
+        title: "03. Peer-to-Peer Swarm",
+        desc: "Decentralized mesh of equals without a central supervisor. Any peer can hand off conversation control to any other peer.",
+        topology: "Mesh Network",
+        primitive: "Mutual handoffs=[...]",
+        comm: "Fluid Peer Mesh",
+        latency: "Moderate",
+        context: "Continuous Transcript",
+        blast: "Peer Propagation",
+        mechanics: `
+          <p><strong>Communication Protocol:</strong> Bidirectional, dynamic handoffs transferring complete session context.</p>
+          <p style="margin-top:0.5rem"><strong>When to Use:</strong></p>
+          <ul>
+            <li>Fluid multi-step customer journeys (e.g. Travel: Flight &harr; Hotel &harr; Excursions).</li>
+            <li>Domain specialists collaborating without coordinator bottlenecks.</li>
+            <li>Exploratory, human-guided conversational workflows.</li>
+          </ul>
+        `,
+        code: `flight_agent.handoffs = [hotel_agent, activity_agent]
+hotel_agent.handoffs = [flight_agent, activity_agent]
+activity_agent.handoffs = [flight_agent, hotel_agent]
+
+result = await Runner.run(flight_agent, "Book flight to Tokyo, a Ryokan, and tea ceremony!")`,
+        svg: `
+          <svg viewBox="0 0 600 300" class="topology-svg">
+            <circle cx="180" cy="90" r="38" fill="#1e1b4b" stroke="#3b82f6" stroke-width="2"/>
+            <text x="180" y="94" text-anchor="middle" fill="#fff" font-size="10" font-weight="bold">Flight Expert</text>
+
+            <circle cx="420" cy="90" r="38" fill="#042f2e" stroke="#10b981" stroke-width="2"/>
+            <text x="420" y="94" text-anchor="middle" fill="#fff" font-size="10" font-weight="bold">Hotel Expert</text>
+
+            <circle cx="300" cy="230" r="38" fill="#451a03" stroke="#f59e0b" stroke-width="2"/>
+            <text x="300" y="234" text-anchor="middle" fill="#fff" font-size="10" font-weight="bold">Activity Curator</text>
+
+            <path d="M 220 90 L 380 90" stroke="#6366f1" stroke-width="2" stroke-dasharray="4"/>
+            <path d="M 200 120 L 280 200" stroke="#f59e0b" stroke-width="2" stroke-dasharray="4"/>
+            <path d="M 400 120 L 320 200" stroke="#10b981" stroke-width="2" stroke-dasharray="4"/>
+          </svg>
+        `
+      },
+      "4": {
+        title: "04. Supervisor & Sub-Agents",
+        desc: "Hierarchical coordinator delegates subtasks via agent.as_tool(). The supervisor retains conversation ownership while subagents execute in isolated sub-contexts.",
+        topology: "Hierarchical Tree",
+        primitive: "subagent.as_tool(...)",
+        comm: "Call-and-Return Isolation",
+        latency: "Moderate",
+        context: "Isolated Sub-Turns",
+        blast: "Minimal (Supervisor Catches)",
+        mechanics: `
+          <p><strong>Communication Protocol:</strong> <code>as_tool()</code> invocation. Subagents run in isolated sub-turns and return distilled strings to the supervisor.</p>
+          <p style="margin-top:0.5rem"><strong>Context Hygiene:</strong></p>
+          <p>Unlike handoffs, subagents do NOT pollute the main conversation with verbose intermediate tool chatter.</p>
+        `,
+        code: `market_tool = market_agent.as_tool(
+    tool_name="consult_market_analyst",
+    tool_description="Researches industry trends."
+)
+
+supervisor = Agent(
+    name="LeadStrategist",
+    instructions="Consult subagents and synthesize an executive dossier.",
+    tools=[market_tool, tech_tool, finance_tool]
+)`,
+        svg: `
+          <svg viewBox="0 0 600 300" class="topology-svg">
+            <circle cx="300" cy="60" r="42" fill="#1e1b4b" stroke="#6366f1" stroke-width="3"/>
+            <text x="300" y="56" text-anchor="middle" fill="#fff" font-size="11" font-weight="bold">Supervisor</text>
+            <text x="300" y="70" text-anchor="middle" fill="#a5b4fc" font-size="9">Lead Strategist</text>
+
+            <path d="M 265 90 L 140 190" stroke="#38bdf8" stroke-width="2"/>
+            <path d="M 300 102 L 300 190" stroke="#34d399" stroke-width="2"/>
+            <path d="M 335 90 L 460 190" stroke="#fbbf24" stroke-width="2"/>
+
+            <circle cx="120" cy="210" r="34" fill="#082f49" stroke="#38bdf8" stroke-width="2"/>
+            <text x="120" y="214" text-anchor="middle" fill="#fff" font-size="9" font-weight="bold">Market Subagent</text>
+
+            <circle cx="300" cy="210" r="34" fill="#064e3b" stroke="#34d399" stroke-width="2"/>
+            <text x="300" y="214" text-anchor="middle" fill="#fff" font-size="9" font-weight="bold">Tech Subagent</text>
+
+            <circle cx="480" cy="210" r="34" fill="#451a03" stroke="#fbbf24" stroke-width="2"/>
+            <text x="480" y="214" text-anchor="middle" fill="#fff" font-size="9" font-weight="bold">Finance Subagent</text>
+          </svg>
+        `
+      },
+      "6": {
+        title: "06. Parallel Fan-Out / Fan-In",
+        desc: "Dispatches multiple specialized agents concurrently using asyncio.gather(), then folds all outputs into a synthesis agent.",
+        topology: "Fork-Join (Scatter-Gather)",
+        primitive: "asyncio.gather(*[Runner.run(...)])",
+        comm: "Async Parallel Scatter-Gather",
+        latency: "Ultra-Fast (Concurrent max(T))",
+        context: "Absolute Isolation",
+        blast: "Isolated per Worker",
+        mechanics: `
+          <p><strong>Communication Protocol:</strong> Scatter (asyncio.gather) &rarr; Fan-In aggregation.</p>
+          <p style="margin-top:0.5rem"><strong>Latency Advantage:</strong></p>
+          <p>3 evaluations taking 5s each finish in ~5.5s total instead of 15s sequentially.</p>
+        `,
+        code: `f1 = Runner.run(cyber_agent, proposal)
+f2 = Runner.run(legal_agent, proposal)
+f3 = Runner.run(finance_agent, proposal)
+
+r1, r2, r3 = await asyncio.gather(f1, f2, f3)
+synthesis = await Runner.run(cro_agent, f"{r1.final_output}...")`,
+        svg: `
+          <svg viewBox="0 0 600 300" class="topology-svg">
+            <circle cx="80" cy="150" r="34" fill="#1e293b" stroke="#64748b" stroke-width="2"/>
+            <text x="80" y="154" text-anchor="middle" fill="#fff" font-size="10">Proposal</text>
+
+            <path d="M 115 140 L 220 70" stroke="#06b6d4" stroke-width="2"/>
+            <path d="M 115 150 L 220 150" stroke="#06b6d4" stroke-width="2"/>
+            <path d="M 115 160 L 220 230" stroke="#06b6d4" stroke-width="2"/>
+
+            <circle cx="260" cy="70" r="30" fill="#082f49" stroke="#06b6d4" stroke-width="2"/>
+            <text x="260" y="74" text-anchor="middle" fill="#fff" font-size="9">Cyber</text>
+
+            <circle cx="260" cy="150" r="30" fill="#082f49" stroke="#06b6d4" stroke-width="2"/>
+            <text x="260" y="154" text-anchor="middle" fill="#fff" font-size="9">Legal</text>
+
+            <circle cx="260" cy="230" r="30" fill="#082f49" stroke="#06b6d4" stroke-width="2"/>
+            <text x="260" y="234" text-anchor="middle" fill="#fff" font-size="9">Finance</text>
+
+            <path d="M 300 70 L 410 140" stroke="#10b981" stroke-width="2"/>
+            <path d="M 300 150 L 410 150" stroke="#10b981" stroke-width="2"/>
+            <path d="M 300 230 L 410 160" stroke="#10b981" stroke-width="2"/>
+
+            <circle cx="450" cy="150" r="38" fill="#064e3b" stroke="#10b981" stroke-width="3"/>
+            <text x="450" y="146" text-anchor="middle" fill="#fff" font-size="10" font-weight="bold">Synthesizer</text>
+            <text x="450" y="160" text-anchor="middle" fill="#6ee7b7" font-size="9">CRO</text>
+          </svg>
+        `
+      },
+      "10": {
+        title: "10. Event-Driven Shared Blackboard",
+        desc: "Agents never invoke each other directly ($O(N^2)$ decoupling). They observe and update a shared, central memory repository (Blackboard).",
+        topology: "Shared Memory Pub-Sub",
+        primitive: "Shared State + Reactive Agent Loops",
+        comm: "State Pub-Sub",
+        latency: "Moderate",
+        context: "Decoupled Shared State",
+        blast: "Fault-Tolerant",
+        mechanics: `
+          <p><strong>Communication Protocol:</strong> Central Blackboard state store. Heterogeneous agents activate when blackboard state matches their trigger preconditions.</p>
+          <p style="margin-top:0.5rem"><strong>When to Use:</strong></p>
+          <ul>
+            <li>Cyber-security Incident Response (SOC) and fraud detection.</li>
+            <li>Decoupling large teams of specialized agents from tight peer-to-peer coupling.</li>
+          </ul>
+        `,
+        code: `board = Blackboard(incident_id="INC-8812")
+# Cycle 1: Telemetry Analyst updates blackboard
+telem_res = await Runner.run(telemetry_agent, alert)
+board.telemetry_findings.append(telem_res.final_output)
+
+# Cycle 2: Threat Hunter reacts to telemetry
+threat_res = await Runner.run(threat_hunter, board.telemetry_findings[-1])
+board.verified_facts.append(threat_res.final_output)`,
+        svg: `
+          <svg viewBox="0 0 600 300" class="topology-svg">
+            <rect x="180" y="100" width="240" height="100" rx="10" fill="#1e1b4b" stroke="#8b5cf6" stroke-width="3"/>
+            <text x="300" y="140" text-anchor="middle" fill="#fff" font-size="13" font-weight="bold">SHARED BLACKBOARD</text>
+            <text x="300" y="160" text-anchor="middle" fill="#c4b5fd" font-size="10">Telemetry | Facts | State: RESOLVED</text>
+
+            <path d="M 120 70 L 190 110" stroke="#06b6d4" stroke-width="2"/>
+            <circle cx="100" cy="60" r="32" fill="#082f49" stroke="#06b6d4" stroke-width="2"/>
+            <text x="100" y="64" text-anchor="middle" fill="#fff" font-size="9">Telemetry</text>
+
+            <path d="M 480 70 L 410 110" stroke="#f59e0b" stroke-width="2"/>
+            <circle cx="500" cy="60" r="32" fill="#451a03" stroke="#f59e0b" stroke-width="2"/>
+            <text x="500" y="64" text-anchor="middle" fill="#fff" font-size="9">ThreatHunter</text>
+
+            <path d="M 300 240 L 300 205" stroke="#10b981" stroke-width="2"/>
+            <circle cx="300" cy="255" r="32" fill="#064e3b" stroke="#10b981" stroke-width="2"/>
+            <text x="300" y="259" text-anchor="middle" fill="#fff" font-size="9">Remediation</text>
+          </svg>
+        `
+      }
+    };
+
+    function selectPattern(id) {
+      document.querySelectorAll('.pattern-btn').forEach(b => b.classList.remove('active'));
+      event?.currentTarget?.classList.add('active');
+
+      const p = DATA[id] || DATA["1"];
+      document.getElementById('p-title').innerText = p.title;
+      document.getElementById('p-desc').innerText = p.desc;
+      document.getElementById('p-topology').innerText = `Topology: ${p.topology}`;
+      document.getElementById('p-primitive').innerText = `Primitive: ${p.primitive}`;
+
+      document.getElementById('m-comm').innerText = p.comm;
+      document.getElementById('m-latency').innerText = p.latency;
+      document.getElementById('m-context').innerText = p.context;
+      document.getElementById('m-blast').innerText = p.blast;
+
+      document.getElementById('p-mechanisms').innerHTML = p.mechanisms;
+      document.getElementById('p-code').innerText = p.code;
+      document.getElementById('viewport').innerHTML = p.svg;
+    }
+
+    function pulseAnimation() {
+      const svg = document.querySelector('.topology-svg');
+      if (svg) {
+        svg.style.transition = 'transform 0.3s ease';
+        svg.style.transform = 'scale(1.02)';
+        setTimeout(() => { svg.style.transform = 'scale(1)'; }, 300);
+      }
+    }
+
+    function resetAnimation() {
+      selectPattern('1');
+    }
+
+    // Default select pattern 1 on load
+    selectPattern('1');
+  </script>
+</body>
+</html>

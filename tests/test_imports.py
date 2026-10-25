@@ -5,8 +5,8 @@ import pytest
 from agent_methods.patterns import PATTERNS
 
 def test_pattern_registry_completeness():
-    """Verify all 10 patterns are registered with required metadata."""
-    assert len(PATTERNS) == 10
+    """Verify all 15 patterns are registered with required metadata."""
+    assert len(PATTERNS) == 15
     for key, p in PATTERNS.items():
         assert "id" in p
         assert "name" in p

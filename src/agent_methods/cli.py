@@ -88,12 +88,17 @@ def main() -> None:
         display_patterns_table()
 
         choice = Prompt.ask(
-            "[bold green]Select a pattern to run (1-10), 'e <id>' to explain, or 'q' to quit[/bold green]",
+            "[bold green]Select a pattern to run (1-15), 'e <id>' to explain, 'v' for visualizer, or 'q' to quit[/bold green]",
             default="1",
         )
 
         if choice.lower() in ("q", "quit", "exit"):
             console.print("[dim]Goodbye![/dim]")
+            return
+
+        if choice.lower() in ("v", "visualizer", "web"):
+            from agent_methods.web_server import serve_visualizer
+            serve_visualizer()
             return
 
         if choice.lower().startswith("e "):
@@ -107,6 +112,14 @@ def main() -> None:
     cmd = args[0].lower()
     if cmd in ("list", "ls"):
         display_patterns_table()
+    elif cmd in ("benchmark", "bench"):
+        from agent_methods.benchmark import run_benchmark_suite
+        targets = args[1:] if len(args) > 1 else None
+        asyncio.run(run_benchmark_suite(targets))
+    elif cmd in ("visualizer", "web", "ui"):
+        from agent_methods.web_server import serve_visualizer
+        port = int(args[1]) if len(args) > 1 and args[1].isdigit() else 8000
+        serve_visualizer(port=port)
     elif cmd in ("explain", "info") and len(args) > 1:
         print_pattern_explanation(args[1])
     elif cmd in ("run",) and len(args) > 1:
@@ -118,9 +131,11 @@ def main() -> None:
     else:
         console.print("[bold red]Usage:[/bold red]")
         console.print("  python main.py                     (Interactive Menu)")
-        console.print("  python main.py list                (List all patterns)")
-        console.print("  python main.py run <1-10> [query]  (Run a specific pattern)")
-        console.print("  python main.py explain <1-10>      (Read architecture explainer)")
+        console.print("  python main.py list                (List all 15 patterns)")
+        console.print("  python main.py run <1-15> [query]  (Run a specific pattern)")
+        console.print("  python main.py explain <1-15>      (Read architecture explainer)")
+        console.print("  python main.py visualizer          (Launch interactive browser visualizer)")
+        console.print("  python main.py benchmark           (Run comparative latency & stability benchmark)")
 
 
 if __name__ == "__main__":

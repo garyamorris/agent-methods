@@ -11,6 +11,11 @@ from . import (
     p08_debate_consensus,
     p09_human_in_the_loop,
     p10_shared_blackboard,
+    p11_plan_and_solve,
+    p12_memory_augmented,
+    p13_federated_teams,
+    p14_consensus_voting,
+    p15_reflection_tree_search,
 )
 
 PATTERNS = {
@@ -84,6 +89,41 @@ PATTERNS = {
         "module": p10_shared_blackboard,
         "topology": "Shared Memory Pub-Sub",
     },
+    "11": {
+        "id": "p11",
+        "name": "Dynamic Plan-and-Solve",
+        "description": "Adaptive closed-loop orchestration with runtime re-planning based on observations",
+        "module": p11_plan_and_solve,
+        "topology": "Closed-Loop Plan Controller",
+    },
+    "12": {
+        "id": "p12",
+        "name": "Memory-Augmented Architecture",
+        "description": "Multi-tier cognitive memory uniting working, episodic, and semantic knowledge stores",
+        "module": p12_memory_augmented,
+        "topology": "Multi-Tier Cognitive Memory",
+    },
+    "13": {
+        "id": "p13",
+        "name": "Federated Multi-Team Swarm",
+        "description": "Two-level federated cluster topology organizing autonomous departments",
+        "module": p13_federated_teams,
+        "topology": "Hierarchical Swarm of Swarms",
+    },
+    "14": {
+        "id": "p14",
+        "name": "Consensus Voting & Calibration",
+        "description": "Blind multi-juror voting with confidence weighting and agreement calibration",
+        "module": p14_consensus_voting,
+        "topology": "Ensemble Electoral College",
+    },
+    "15": {
+        "id": "p15",
+        "name": "Tree-of-Thought with Rollback",
+        "description": "Heuristic tree search exploring multiple candidate branches and pruning dead-ends",
+        "module": p15_reflection_tree_search,
+        "topology": "Branching Search Tree",
+    },
 }
 
 __all__ = [
@@ -98,4 +138,9 @@ __all__ = [
     "p08_debate_consensus",
     "p09_human_in_the_loop",
     "p10_shared_blackboard",
+    "p11_plan_and_solve",
+    "p12_memory_augmented",
+    "p13_federated_teams",
+    "p14_consensus_voting",
+    "p15_reflection_tree_search",
 ]

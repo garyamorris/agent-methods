@@ -1,16 +1,17 @@
 # The Definitive Multi-Agent Architecture Guide
 
-An educational guide exploring multi-agent communication topologies, coordination mechanisms, and design trade-offs built on top of the **OpenAI Agents SDK**.
+An educational guide exploring multi-agent communication topologies, coordination mechanisms, and design trade-offs powered by **DeepSeek** via the **OpenAI Agents SDK**.
 
 ---
 
 ## Table of Contents
 1. [The Evolution of Agent Architectures](#1-the-evolution-of-agent-architectures)
 2. [Communication Topologies Taxonomy](#2-communication-topologies-taxonomy)
-3. [The Trade-off Decision Matrix](#3-the-trade-off-decision-matrix)
+3. [The 15-Pattern Trade-off Decision Matrix](#3-the-15-pattern-trade-off-decision-matrix)
 4. [Handoff vs. Agent-as-a-Tool (Deep Dive)](#4-handoff-vs-agent-as-a-tool-deep-dive)
 5. [Context Hygiene and Blast Radius](#5-context-hygiene-and-blast-radius)
-6. [Common Anti-Patterns to Avoid](#6-common-anti-patterns-to-avoid)
+6. [Interactive Web Visualizer](#6-interactive-web-visualizer)
+7. [Common Anti-Patterns to Avoid](#7-common-anti-patterns-to-avoid)
 
 ---
 
@@ -30,197 +31,65 @@ Multi-agent architectures decompose complex systems into **modular, loosely-coup
 
 ## 2. Communication Topologies Taxonomy
 
-### Pattern 1: Single Agent ReAct (Point-to-Point Loop)
-The agent operates in an autonomous loop of **Thought $\to$ Action $\to$ Observation $\to$ Reflection**.
+The 15 patterns are categorized into 4 core architectural families:
 
 ```mermaid
-flowchart TD
-    User([User Request]) --> Agent[ReAct Agent]
-    Agent -->|Action: Tool Call| Tool[External Tool / API]
-    Tool -->|Observation: Return Data| Agent
-    Agent -->|Final Synthesis| Output([User Response])
-```
+graph TD
+    subgraph "1. Single Agent Loops"
+        P01["01. Single Agent ReAct<br/>(Point-to-Point Tool Loop)"]
+        P11["11. Plan-and-Solve<br/>(Dynamic Re-planning Loop)"]
+        P12["12. Memory-Augmented<br/>(Episodic + Semantic Memory)"]
+        P15["15. Tree-of-Thought<br/>(Reflection with Rollback)"]
+    end
 
-- **Communication Mechanism**: In-context tool calling loop.
-- **State Scope**: Single conversation context.
+    subgraph "2. Delegation & Routing"
+        P02["02. Router / Triage<br/>(Star / Hub-and-Spoke)"]
+        P03["03. Peer Swarm<br/>(Decentralized Mesh)"]
+        P04["04. Supervisor & Sub-Agents<br/>(Hierarchical Tree)"]
+        P13["13. Federated Teams<br/>(Swarm of Swarms)"]
+    end
 
----
+    subgraph "3. Dataflow & Concurrency"
+        P05["05. Sequential Pipeline<br/>(Linear Assembly Line)"]
+        P06["06. Parallel Fan-Out/In<br/>(Fork-Join / Map-Reduce)"]
+        P07["07. Evaluator-Optimizer<br/>(Generator-Critic Loop)"]
+    end
 
-### Pattern 2: Router / Triage Dispatcher (Star / Hub & Spoke)
-A lightweight front-door classifier analyzes intent and delegates conversation ownership to a specialized domain agent.
-
-```mermaid
-flowchart TD
-    User([User Request]) --> Router[Triage Router]
-    Router -->|handoff| Billing[Billing Specialist]
-    Router -->|handoff| Tech[Technical Support]
-    Router -->|handoff| Sales[Enterprise Sales]
-    Billing --> Tool1[process_refund]
-    Tech --> Tool2[run_diagnostics]
-    Sales --> Tool3[calculate_quote]
-```
-
-- **Communication Mechanism**: Zero-shot intent classification $\to$ SDK `handoff(target=...)`.
-- **State Scope**: Conversation history travels with the handoff to the specialist. The router drops out of the loop.
-
----
-
-### Pattern 3: Peer-to-Peer Swarm (Mesh Network)
-Agents are organized as peers without a central supervisor. Any peer can hand off conversation control to any other peer as the conversation evolves.
-
-```mermaid
-flowchart LR
-    Flight[Flight Specialist] <-->|handoff| Hotel[Hotel Specialist]
-    Hotel <-->|handoff| Activity[Activity Specialist]
-    Activity <-->|handoff| Flight
-```
-
-- **Communication Mechanism**: Decentralized, bidirectional handoffs.
-- **State Scope**: Shared linear conversation history, fluid ownership transitions.
-
----
-
-### Pattern 4: Supervisor & Sub-Agents (Hierarchical Tree / Orchestrator-Workers)
-A central coordinator retains conversational ownership and delegates subtasks to specialists packaged as tools (`agent.as_tool()`).
-
-```mermaid
-flowchart TD
-    User([User Goal]) --> Supervisor[Lead Strategist]
-    Supervisor -->|consult as tool| Sub1[Market Analyst Subagent]
-    Supervisor -->|consult as tool| Sub2[Tech Architect Subagent]
-    Supervisor -->|consult as tool| Sub3[Financial Modeler Subagent]
-    Sub1 -->|Distilled Brief| Supervisor
-    Sub2 -->|Distilled Brief| Supervisor
-    Sub3 -->|Distilled Brief| Supervisor
-    Supervisor --> Final([Executive Dossier])
-```
-
-- **Communication Mechanism**: Call-and-return (`as_tool`).
-- **State Scope**: Subagents execute in isolated sub-contexts; their internal tool chatter does NOT pollute the supervisor's context window.
-
----
-
-### Pattern 5: Sequential Pipeline (Linear Chain / Assembly Line)
-Workflows where output of Agent $N$ becomes structured input for Agent $N+1$.
-
-```mermaid
-flowchart LR
-    Input([Raw Topic]) --> Spec[Spec Extractor]
-    Spec --> Outline[Curriculum Architect]
-    Outline --> Writer[Draft Writer]
-    Writer --> Editor[Editorial Reviewer]
-    Editor --> Output([Publication])
-```
-
-- **Communication Mechanism**: Typed output-to-input handoff.
-- **State Scope**: Discrete, stage-by-stage message transformation.
-
----
-
-### Pattern 6: Parallel Fan-Out / Fan-In (Scatter-Gather / Map-Reduce)
-Concurrently runs multiple specialized agents via `asyncio.gather()`, then synthesizes all perspectives.
-
-```mermaid
-flowchart TD
-    Proposal([Proposal]) --> FanOut{Fan Out}
-    FanOut --> Agent1[Cybersecurity Auditor]
-    FanOut --> Agent2[Compliance Auditor]
-    FanOut --> Agent3[Financial Risk Auditor]
-    Agent1 --> FanIn{Fan In}
-    Agent2 --> FanIn
-    Agent3 --> FanIn
-    FanIn --> CRO[Chief Risk Officer]
-    CRO --> Matrix([Executive Risk Matrix])
-```
-
-- **Communication Mechanism**: Asynchronous parallel futures gathered into a synthesis prompt.
-- **State Scope**: Zero cross-agent context leakage; pure functional fan-out/fan-in.
-
----
-
-### Pattern 7: Evaluator-Optimizer (Generator-Critic Feedback Loop)
-A generator produces candidate solutions, an evaluator grades against strict rubrics, and structured critique is looped back until quality convergence.
-
-```mermaid
-flowchart TD
-    Spec([Specification]) --> Gen[Generator Agent]
-    Gen --> Candidate[Candidate Code / Artifact]
-    Candidate --> Eval[Evaluator / Reviewer Agent]
-    Eval --> Check{Score >= 85?}
-    Check -->|No - Structured Critique| Gen
-    Check -->|Yes - Passed| Final([Verified Production Artifact])
+    subgraph "4. Governance & Deliberation"
+        P08["08. Multi-Agent Debate<br/>(Adversarial Arena)"]
+        P09["09. Human-in-the-Loop<br/>(Guarded Intercept Gate)"]
+        P10["10. Shared Blackboard<br/>(Event-Driven Pub-Sub)"]
+        P14["14. Consensus Voting<br/>(Ensemble Calibration)"]
+    end
 ```
 
 ---
 
-### Pattern 8: Multi-Agent Debate & Deliberation (Adversarial Roundtable)
-Pits opposing advocates against each other across opening and rebuttal rounds, moderated by an impartial judge.
+## 3. The 15-Pattern Trade-off Decision Matrix
 
-```mermaid
-flowchart TD
-    Dilemma([Architectural Dilemma]) --> OpenA[Advocate Monolith: Opening]
-    Dilemma --> OpenB[Advocate Microservices: Opening]
-    OpenA --> RebutB[Microservices Rebuttal]
-    OpenB --> RebutA[Monolith Rebuttal]
-    RebutA --> Judge[Judicial CTO Moderator]
-    RebutB --> Judge
-    Judge --> Verdict([Balanced Situational Verdict])
-```
-
----
-
-### Pattern 9: Human-in-the-Loop & Safety Guardrails (Guarded Gate)
-Enforces safety boundaries using `@input_guardrail`, pauses high-risk actions using `needs_approval=True`, and cleans outputs with `@output_guardrail`.
-
-```mermaid
-flowchart TD
-    Input([User Command]) --> InGuard{Input Guardrail}
-    InGuard -->|Pass| Agent[DevOps Agent]
-    InGuard -->|Fail| Block([Rejected])
-    Agent --> Tool[High-Risk Tool: Database Migration]
-    Tool --> Approval{needs_approval?}
-    Approval -->|Pause Runner| Human([Human Operator Review])
-    Human -->|state.approve| Resume[Resume RunState]
-    Resume --> OutGuard{Output Guardrail}
-    OutGuard --> Delivery([Verified Delivery])
-```
-
----
-
-### Pattern 10: Event-Driven Shared Blackboard (Decoupled Shared State)
-Agents never call each other. They read and post facts to a central shared blackboard.
-
-```mermaid
-flowchart TD
-    Alert([Alert / Anomaly]) --> BB[(Shared Blackboard)]
-    BB <-->|reads alert, writes metrics| Telem[Telemetry Analyst]
-    BB <-->|reads metrics, writes threat| Hunter[Threat Hunter]
-    BB <-->|reads threat, writes WAF rule| Remediator[Remediation Engineer]
-    BB --> PostMortem([Incident Resolved Dossier])
-```
-
----
-
-## 3. The Trade-off Decision Matrix
-
-| Pattern | Topology | Latency | Token Cost | State Isolation | Failure Blast Radius | Best Suited For |
-| :--- | :--- | :---: | :---: | :---: | :---: | :--- |
-| **01. Single ReAct** | Loop | Low | Low | Low | Contained | Straightforward API queries, calculations |
-| **02. Router / Triage** | Star | Low | Low | Moderate | Low | Multichannel Customer Support, Helpdesks |
-| **03. Peer Swarm** | Mesh | Moderate | Moderate | Low | Moderate | Fluid exploratory journeys (Travel, Brainstorming) |
-| **04. Supervisor** | Tree | Moderate | Moderate | High | Low | Complex strategy, multi-domain planning |
-| **05. Pipeline** | Linear | Moderate | Moderate | High | Low | Publishing, ETL, Code migration |
-| **06. Parallel Fan-Out** | Fork-Join | Fast (Concurrent) | High | Absolute | Isolated | Risk audits, comprehensive multi-angle reviews |
-| **07. Evaluator-Optimizer**| Cyclic Loop | High (Multi-turn) | High | Moderate | Low | High-assurance code, SQL synthesis, contracts |
-| **08. Multi-Agent Debate** | Roundtable | High | High | Low | Low | Ambiguous architectural decisions, policy |
-| **09. Human-in-the-Loop** | Intercept Gate| Variable (Human) | Low | High | Minimal | Database wipes, financial operations, compliance |
-| **10. Shared Blackboard** | Pub-Sub | Moderate | Moderate | Decoupled | Low | SOC incident response, multi-sensor autonomy |
+| # | Pattern Name | Topology | Latency | Token Cost | State Isolation | Failure Blast Radius | Primary Best-Fit Application |
+| :-: | :--- | :--- | :---: | :---: | :---: | :---: | :--- |
+| **01** | **Single ReAct** | Tool Loop | Low | Low | Low | Contained | Straightforward API queries, calculations |
+| **02** | **Router / Triage** | Star Hub | Low | Low | Moderate | Low | Multichannel Customer Support, Helpdesks |
+| **03** | **Peer Swarm** | Mesh Network | Moderate | Moderate | Low | Moderate | Fluid exploratory journeys (Travel, Brainstorming) |
+| **04** | **Supervisor** | Tree Hierarchy | Moderate | Moderate | High | Low | Complex strategy, multi-domain planning |
+| **05** | **Sequential Pipeline**| Linear Chain | Moderate | Moderate | High | Low | Publishing, ETL, Code migration |
+| **06** | **Parallel Fan-Out** | Fork-Join | Fast (Concurrent)| High | Absolute | Isolated | Risk audits, comprehensive multi-angle reviews |
+| **07** | **Evaluator-Optimizer**| Cyclic Loop | High (Multi-turn)| High | Moderate | Low | High-assurance code, SQL synthesis, contracts |
+| **08** | **Multi-Agent Debate** | Roundtable Arena| High | High | Low | Low | Ambiguous architectural decisions, policy |
+| **09** | **Human-in-the-Loop** | Intercept Gate | Variable (Human)| Low | High | Minimal | Database wipes, financial operations, compliance |
+| **10** | **Shared Blackboard** | Pub-Sub Store | Moderate | Moderate | Decoupled | Low | SOC incident response, multi-sensor autonomy |
+| **11** | **Plan-and-Solve** | Closed-Loop Plan| High (Adaptive) | High | High | Low | Multi-step software refactoring, scientific search |
+| **12** | **Memory-Augmented** | Cognitive Tiers | Low | Low | High | Low | Persistent executive assistants, CRM profiles |
+| **13** | **Federated Teams** | Swarm of Swarms| Moderate | Moderate | High | Isolated | Enterprise organizations mirroring Conway's Law |
+| **14** | **Consensus Voting** | Blind Ensemble | Fast (Concurrent)| High | Absolute | Minimal | High-stakes zero-day CVE scoring, fraud triage |
+| **15** | **Tree-of-Thought** | Branching Search| High (Search) | High | High | Resilient | Heuristic path planning, combinatorial optimization |
 
 ---
 
 ## 4. Handoff vs. Agent-as-a-Tool (Deep Dive)
 
-The distinction between `handoff` and `as_tool` is one of the most critical concepts in modern agent architecture:
+The distinction between `handoff` and `as_tool` is the foundational divide in multi-agent systems:
 
 ```
 +--------------------------------------------------------------------------------+
@@ -249,7 +118,19 @@ Using `subagent.as_tool()` enforces **Context Hygiene**: the subagent reads the 
 
 ---
 
-## 6. Common Anti-Patterns to Avoid
+## 6. Interactive Web Visualizer
+
+To visualize all 15 topologies with live animated message flows and interactive node graphs, run:
+
+```bash
+python main.py visualizer
+```
+
+This launches a zero-dependency, local web application on `http://localhost:8000` with interactive SVG diagrams, metric cards, and step-by-step playback simulation.
+
+---
+
+## 7. Common Anti-Patterns to Avoid
 
 1. **The Ping-Pong Loop**: Two peer agents continuously handing off to each other without making progress.
    - *Fix*: Limit `max_turns` in `Runner.run()` or enforce handoff preconditions.

@@ -67,3 +67,45 @@ def test_pattern_10_blackboard():
     bb.log_event("Test", "Sample log")
     assert len(bb.timeline) == 1
     assert bb.status == "INVESTIGATING"
+
+
+def test_pattern_11_plan_state():
+    from agent_methods.patterns import p11_plan_and_solve
+    plan = p11_plan_and_solve.ExecutionPlan(
+        objective="Test",
+        steps=[p11_plan_and_solve.PlanStep(step_id=1, description="Step 1")]
+    )
+    assert len(plan.steps) == 1
+    assert plan.steps[0].status == "PENDING"
+
+
+def test_pattern_12_memory_tools():
+    from agent_methods.patterns import p12_memory_augmented
+    assert len(p12_memory_augmented.memory_agent.tools) == 3
+
+
+def test_pattern_13_federated_teams():
+    from agent_methods.patterns import p13_federated_teams
+    assert len(p13_federated_teams.executive_ceo.tools) == 2
+
+
+def test_pattern_14_voting_models():
+    from agent_methods.patterns import p14_consensus_voting
+    ballot = p14_consensus_voting.JurorBallot(
+        juror_name="Juror1",
+        vote="APPROVE",
+        confidence_score=90,
+        primary_rationale="Solid architecture."
+    )
+    assert ballot.vote == "APPROVE"
+
+
+def test_pattern_15_search_tree():
+    from agent_methods.patterns import p15_reflection_tree_search
+    branch = p15_reflection_tree_search.CandidateBranch(
+        branch_id=1,
+        title="Branch 1",
+        description="Redis CRDT",
+        feasibility_score=85
+    )
+    assert branch.feasibility_score == 85

@@ -8,12 +8,13 @@ from rich.panel import Panel
 from rich.prompt import Prompt
 
 from agent_methods.patterns import PATTERNS
-from agent_methods.common import console, print_header
+from agent_methods.common import console, print_header, DEFAULT_MODEL, is_using_deepseek
 
 def display_patterns_table() -> None:
     """Render a formatted comparison table of all available agent architectures."""
+    provider_label = "DeepSeek" if is_using_deepseek() else "OpenAI"
     table = Table(
-        title="Multi-Agent Communication Architectures Bed",
+        title=f"Multi-Agent Communication Architectures Bed [{provider_label}: {DEFAULT_MODEL}]",
         show_header=True,
         header_style="bold magenta",
         expand=True,
@@ -79,9 +80,10 @@ def main() -> None:
 
     if not args:
         # Interactive mode
+        provider_name = "DeepSeek (deepseek-chat)" if is_using_deepseek() else "OpenAI"
         print_header(
             "Agent Methods Lab",
-            "Educational testbed of agent architectures & communication topologies (OpenAI Agents SDK)",
+            f"Educational testbed of agent architectures & communication topologies\nPowered by {provider_name} via OpenAI Agents SDK",
         )
         display_patterns_table()
 

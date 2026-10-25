@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "agent-methods"
 version = "0.1.0"
-description = "An interactive educational testbed of multi-agent architectures, communication topologies, and orchestration patterns built with the OpenAI Agents SDK."
+description = "An interactive educational testbed of multi-agent architectures, communication topologies, and orchestration patterns powered by DeepSeek via the OpenAI Agents SDK."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
@@ -15,7 +15,9 @@ authors = [
 keywords = [
     "agents",
     "multi-agent",
-    "openai",
+    "deepseek",
+    "deepseek-v3",
+    "deepseek-r1",
     "openai-agents",
     "llm",
     "swarm",

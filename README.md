@@ -1,12 +1,13 @@
 # 🧠 Agent Methods
 
-> **An interactive educational testbed of multi-agent architectures, communication topologies, and orchestration patterns built with the official OpenAI Agents SDK.**
+> **An interactive educational testbed of multi-agent architectures, communication topologies, and orchestration patterns powered by DeepSeek via the OpenAI Agents SDK.**
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![Model: DeepSeek](https://img.shields.io/badge/Model-DeepSeek--V3%20%28deepseek--chat%29-blueviolet.svg)](https://deepseek.com)
 [![OpenAI Agents SDK](https://img.shields.io/badge/OpenAI%20Agents%20SDK-0.24+-black.svg)](https://github.com/openai/openai-agents-python)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
-`agent-methods` provides concrete, production-grade implementations of the foundational communication topologies used by autonomous multi-agent systems. Rather than viewing agents as mysterious monoliths, this repository breaks down **how agents talk to each other**, **how context flows across agent boundaries**, and **when to use each architecture pattern**.
+`agent-methods` provides concrete, production-grade implementations of the foundational communication topologies used by autonomous multi-agent systems. All model calls are routed through **DeepSeek** (`deepseek-chat` / DeepSeek-V3) using the official **OpenAI Agents SDK**, demonstrating how modern agent frameworks cleanly decouple orchestration logic from underlying model providers.
 
 ---
 
@@ -28,12 +29,14 @@ source .venv/bin/activate
 pip install -e ".[dev]"
 ```
 
-### 2. Set Your OpenAI API Key
+### 2. Configure Your DeepSeek API Key
 ```bash
 cp .env.example .env
-# Edit .env with your OpenAI API key:
-# OPENAI_API_KEY=sk-proj-...
+# Edit .env:
+# DEEPSEEK_API_KEY=sk-...
 ```
+
+*(Note: You can also export `DEEPSEEK_API_KEY="sk-..."` directly in your shell or set `OPENAI_API_KEY` as a fallback).*
 
 ### 3. Launch the Interactive CLI Lab
 ```bash

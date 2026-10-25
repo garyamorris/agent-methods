@@ -28,3 +28,10 @@ def test_pattern_docstring_exists(pattern_key):
     assert "Architecture Overview" in doc
     assert "Communication Topology" in doc
     assert "When to Use" in doc
+
+
+def test_deepseek_configuration():
+    """Verify default model is deepseek-chat and base URL is configured."""
+    from agent_methods.common import DEFAULT_MODEL, DEEPSEEK_BASE_URL
+    assert DEFAULT_MODEL == "deepseek-chat"
+    assert "api.deepseek.com" in DEEPSEEK_BASE_URL

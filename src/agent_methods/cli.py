@@ -93,8 +93,8 @@ def main() -> None:
         display_patterns_table()
 
         choice = Prompt.ask(
-            "[bold green]Select a pattern to run (1-15), 'e <id>' to explain, 'v' for visualizer, or 'q' to quit[/bold green]",
-            default="1",
+            "[bold green]Select pattern (1-15), 't <id>' to trace comms, 'e <id>' to explain, 'v' for visualizer, or 'q' to quit[/bold green]",
+            default="2",
         )
 
         if choice.lower() in ("q", "quit", "exit"):
@@ -109,6 +109,17 @@ def main() -> None:
         if choice.lower().startswith("e "):
             target_key = choice.split()[1]
             print_pattern_explanation(target_key)
+            return
+
+        if choice.lower().startswith("t "):
+            target_key = choice.split()[1]
+            ex_choice = Prompt.ask(
+                "[bold yellow]Select real-world scenario to trace[/bold yellow] (1=Primary production case, 2=Secondary case)",
+                choices=["1", "2"],
+                default="1",
+            )
+            console.print("\n[bold yellow]📡 Initiating Real-Time Inter-Agent Wire Communication Trace...[/bold yellow]\n")
+            asyncio.run(run_pattern(target_key, example_id=int(ex_choice)))
             return
 
         ex_choice = Prompt.ask(
@@ -133,6 +144,23 @@ def main() -> None:
         serve_visualizer(port=port)
     elif cmd in ("explain", "info") and len(args) > 1:
         print_pattern_explanation(args[1])
+    elif cmd in ("trace", "comms") and len(args) > 1:
+        pattern_arg = args[1]
+        example_id = 1
+        query_parts = []
+        skip_next = False
+        for i, a in enumerate(args[2:]):
+            if skip_next:
+                skip_next = False
+                continue
+            if a in ("--example", "-e") and i + 1 < len(args[2:]):
+                example_id = int(args[2:][i + 1])
+                skip_next = True
+            else:
+                query_parts.append(a)
+        user_input = " ".join(query_parts) if query_parts else None
+        console.print("\n[bold yellow]📡 Initiating Real-Time Inter-Agent Wire Communication Trace...[/bold yellow]\n")
+        asyncio.run(run_pattern(pattern_arg, user_input, example_id=example_id))
     elif cmd in ("run",) and len(args) > 1:
         pattern_arg = args[1]
         example_id = 1
@@ -168,6 +196,7 @@ def main() -> None:
         console.print("[bold red]Usage:[/bold red]")
         console.print("  python main.py                              (Interactive Menu with Scenario Selection)")
         console.print("  python main.py list                         (List all 15 patterns)")
+        console.print("  python main.py trace <1-15> [--example 1|2] (Trace real-time inter-agent wire comms & sequence)")
         console.print("  python main.py run <1-15> [--example 1|2]   (Run a specific pattern & real-world example)")
         console.print("  python main.py explain <1-15>               (Read architecture & real API docstring)")
         console.print("  python main.py visualizer                   (Launch interactive browser visualizer)")

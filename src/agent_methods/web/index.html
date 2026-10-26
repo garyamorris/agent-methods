@@ -1422,6 +1422,96 @@ board.verified_facts.append(threat_res.final_output)`,
       }
     };
 
+    
+    const TRACES = {
+      "1": [
+        { seq: "01", time: "0.00s", type: "QUERY", from: "User", to: "CryptoPortfolioAnalyst", summary: "Query live Bitcoin, Ethereum prices & calculate 1-day 95% VaR" },
+        { seq: "02", time: "1.42s", type: "TOOL_CALL", from: "CryptoPortfolioAnalyst", to: "CoinGecko API", summary: "GET /api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd" },
+        { seq: "03", time: "2.10s", type: "TOOL_RESULT", from: "CoinGecko API", to: "CryptoPortfolioAnalyst", summary: "BTC: $68,450 (+2.4%), ETH: $2,640 (+1.8%)" },
+        { seq: "04", time: "3.25s", type: "TOOL_CALL", from: "CryptoPortfolioAnalyst", to: "Parametric VaR Engine", summary: "calculate_portfolio_var(value=$129,075, vol=55%)" },
+        { seq: "05", time: "3.26s", type: "TOOL_RESULT", from: "Parametric VaR Engine", to: "CryptoPortfolioAnalyst", summary: "Estimated 1-day 95% VaR: $7,025.40 (Extreme Risk)" },
+        { seq: "06", time: "5.18s", type: "FINAL", from: "CryptoPortfolioAnalyst", to: "User", summary: "Synthesized executive risk report with exact live prices" }
+      ],
+      "2": [
+        { seq: "01", time: "0.00s", type: "QUERY", from: "User", to: "TriageRouter", summary: "Probe latency to https://api.github.com and check health" },
+        { seq: "02", time: "1.61s", type: "HANDOFF", from: "TriageRouter", to: "NetworkLatencySpecialist", summary: "Zero-shot classification: transfers session context via SDK handoff()" },
+        { seq: "03", time: "1.82s", type: "TOOL_CALL", from: "NetworkLatencySpecialist", to: "HTTP Ping Probe", summary: "GET https://api.github.com (measure TCP+TLS round-trip)" },
+        { seq: "04", time: "2.31s", type: "TOOL_RESULT", from: "HTTP Ping Probe", to: "NetworkLatencySpecialist", summary: "HTTP 200 OK | Round-trip latency: 492.27ms" },
+        { seq: "05", time: "4.85s", type: "FINAL", from: "NetworkLatencySpecialist", to: "User", summary: "Diagnoses network route and delivers operational health verdict" }
+      ],
+      "3": [
+        { seq: "01", time: "0.00s", type: "QUERY", from: "User", to: "FlightSpecialist", summary: "Plan Tokyo trip: geocode city, check live weather, get Senso-ji history" },
+        { seq: "02", time: "1.45s", type: "TOOL_CALL", from: "FlightSpecialist", to: "Nominatim API", summary: "GET /search?q=Tokyo (fetch exact lat/lon)" },
+        { seq: "03", time: "2.10s", type: "TOOL_RESULT", from: "Nominatim API", to: "FlightSpecialist", summary: "Coords: 35.6768° N, 139.7638° E" },
+        { seq: "04", time: "2.85s", type: "HANDOFF", from: "FlightSpecialist", to: "HotelSpecialist", summary: "Mesh Handoff: passes destination coordinates for weather check" },
+        { seq: "05", time: "3.20s", type: "TOOL_CALL", from: "HotelSpecialist", to: "Open-Meteo API", summary: "GET /forecast?lat=35.6768&lon=139.7638 (fetch temp & wind)" },
+        { seq: "06", time: "3.75s", type: "TOOL_RESULT", from: "Open-Meteo API", to: "HotelSpecialist", summary: "Live temp: 18.4°C, Wind: 3.6 km/h, Humidity: 97%" },
+        { seq: "07", time: "4.30s", type: "HANDOFF", from: "HotelSpecialist", to: "ActivitySpecialist", summary: "Mesh Handoff: passes context to fetch verified landmark history" },
+        { seq: "08", time: "5.10s", type: "TOOL_CALL", from: "ActivitySpecialist", to: "Wikipedia REST API", summary: "GET /page/summary/Senso-ji (fetch encyclopedic abstract)" },
+        { seq: "09", time: "5.60s", type: "TOOL_RESULT", from: "Wikipedia REST API", to: "ActivitySpecialist", summary: "Oldest Buddhist temple in Tokyo, built 645 AD" },
+        { seq: "10", time: "7.40s", type: "FINAL", from: "ActivitySpecialist", to: "User", summary: "Consolidated multi-specialist itinerary report" }
+      ],
+      "4": [
+        { seq: "01", time: "0.00s", type: "QUERY", from: "User", to: "LeadEnterpriseStrategist", summary: "Due-diligence on astral-sh/uv with GitHub metrics, HN buzz & unit economics" },
+        { seq: "02", time: "1.20s", type: "SUBAGENT_CALL", from: "LeadEnterpriseStrategist", to: "MarketScoutSubagent", summary: "as_tool(consult_market_analyst): search HackerNews buzz" },
+        { seq: "03", time: "3.10s", type: "SUBAGENT_RETURN", from: "MarketScoutSubagent", to: "LeadEnterpriseStrategist", summary: "Distilled return: Plotly production adoption notes & year-1 quirks" },
+        { seq: "04", time: "3.30s", type: "SUBAGENT_CALL", from: "LeadEnterpriseStrategist", to: "TechArchitectSubagent", summary: "as_tool(consult_tech_architect): inspect GitHub repository" },
+        { seq: "05", time: "4.80s", type: "SUBAGENT_RETURN", from: "TechArchitectSubagent", to: "LeadEnterpriseStrategist", summary: "Verified GitHub stats: 91,150 stars, 3,008 issues, daily commits" },
+        { seq: "06", time: "5.00s", type: "SUBAGENT_CALL", from: "LeadEnterpriseStrategist", to: "FinancialModelerSubagent", summary: "as_tool(consult_financial_modeler): CAC $300, LTV $1,800" },
+        { seq: "07", time: "6.20s", type: "SUBAGENT_RETURN", from: "FinancialModelerSubagent", to: "LeadEnterpriseStrategist", summary: "LTV:CAC 6.0x, Payback 2.1 months (Venture Scale)" },
+        { seq: "08", time: "8.50s", type: "FINAL", from: "LeadEnterpriseStrategist", to: "User", summary: "Comprehensive C-suite investment memorandum" }
+      ],
+      "7": [
+        { seq: "01", time: "0.00s", type: "TASK", from: "User", to: "CodeGenerator", summary: "Implement O(1) LRU Cache in Python" },
+        { seq: "02", time: "2.80s", type: "CANDIDATE", from: "CodeGenerator", to: "SeniorCodeReviewer", summary: "Candidate 1 generated (using OrderedDict)" },
+        { seq: "03", time: "3.20s", type: "TOOL_CALL", from: "SeniorCodeReviewer", to: "Python AST Sandbox", summary: "execute_python_sandbox_test(candidate_code, test_assertions)" },
+        { seq: "04", time: "3.60s", type: "TOOL_RESULT", from: "Python AST Sandbox", to: "SeniorCodeReviewer", summary: "Runtime Error: missing custom eviction hook. Tests failed!" },
+        { seq: "05", time: "4.50s", type: "CRITIQUE", from: "SeniorCodeReviewer", to: "CodeGenerator", summary: "Score 35/100 (FAIL). Traceback feedback fed back to Generator" },
+        { seq: "06", time: "7.10s", type: "CANDIDATE", from: "CodeGenerator", to: "SeniorCodeReviewer", summary: "Candidate 2 generated with self-contained doubly-linked list" },
+        { seq: "07", time: "7.50s", type: "TOOL_CALL", from: "SeniorCodeReviewer", to: "Python AST Sandbox", summary: "execute_python_sandbox_test(candidate_2, test_assertions)" },
+        { seq: "08", time: "7.90s", type: "TOOL_RESULT", from: "Python AST Sandbox", to: "SeniorCodeReviewer", summary: "ALL TESTS PASSED: 0 errors, runtime 4.2ms" },
+        { seq: "09", time: "9.20s", type: "FINAL", from: "SeniorCodeReviewer", to: "User", summary: "Solution converged (Score 94/100, Passed: True)" }
+      ]
+    };
+
+    function renderWireTrace(id) {
+      const feed = document.getElementById('wire-packets-feed');
+      if (!feed) return;
+      const packets = TRACES[id] || [
+        { seq: "01", time: "0.00s", type: "QUERY", from: "User", to: "Coordinator", summary: "User dispatches high-level request" },
+        { seq: "02", time: "1.20s", type: "COMMS", from: "Coordinator", to: "Specialist", summary: "Inter-agent message or tool invocation dispatched" },
+        { seq: "03", time: "2.40s", type: "OBSERVATION", from: "Specialist", to: "Coordinator", summary: "Live external API data returned and verified" },
+        { seq: "04", time: "3.80s", type: "FINAL", from: "Coordinator", to: "User", summary: "Grounded final response delivered" }
+      ];
+
+      const typeColors = {
+        "QUERY": "#38bdf8",
+        "HANDOFF": "#fbbf24",
+        "SUBAGENT_CALL": "#c084fc",
+        "SUBAGENT_RETURN": "#a855f7",
+        "TOOL_CALL": "#ec4899",
+        "TOOL_RESULT": "#34d399",
+        "FINAL": "#10b981",
+        "CRITIQUE": "#f43f5e",
+        "CANDIDATE": "#60a5fa"
+      };
+
+      feed.innerHTML = packets.map(p => {
+        const color = typeColors[p.type] || "#94a3b8";
+        return `
+          <div class="wire-packet-row" style="background: rgba(30, 41, 59, 0.4); border-left: 3px solid ${color}; padding: 0.35rem 0.65rem; border-radius: 4px; display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
+            <div style="display: flex; align-items: center; gap: 0.6rem;">
+              <span style="color: #64748b; font-size: 0.7rem;">#${p.seq}</span>
+              <span style="color: ${color}; font-weight: 700; font-size: 0.72rem; background: rgba(255,255,255,0.06); padding: 0.1rem 0.35rem; border-radius: 3px;">${p.type}</span>
+              <span style="color: #e2e8f0; font-weight: 600;">${p.from} <span style="color:#64748b;">➔</span> ${p.to}</span>
+            </div>
+            <div style="color: #94a3b8; font-size: 0.75rem; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 380px;">${p.summary}</div>
+            <div style="color: #64748b; font-size: 0.7rem; min-width: 45px; text-align: right;">+${p.time}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
     function selectPattern(id) {
       document.querySelectorAll('.pattern-btn').forEach(b => b.classList.remove('active'));
       event?.currentTarget?.classList.add('active');
@@ -1458,6 +1548,7 @@ board.verified_facts.append(threat_res.final_output)`,
       document.getElementById('p-mechanisms').innerHTML = p.mechanisms;
       document.getElementById('p-code').innerText = p.code;
       document.getElementById('viewport').innerHTML = p.svg;
+      renderWireTrace(id);
     }
 
     function pulseAnimation() {

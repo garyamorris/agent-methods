@@ -82,6 +82,7 @@ from agent_methods.common import (
     print_handoff,
     print_result_panel,
     print_explainer,
+    CommsTracer,
 )
 
 # -------------------------------------------------------------------------
@@ -257,29 +258,16 @@ async def run(query: str | None = None, example_id: int = 1) -> str:
 
     console.print(f"[bold cyan]User Query:[/bold cyan] {user_prompt}\n")
 
+    tracer = CommsTracer(scenario_title="Pattern 03: Peer-to-Peer Swarm")
+    tracer.record_user_query(user_prompt, flight_agent.name)
+
     # Start with flight_agent
     print_agent_step("FlightSpecialist", "Initiating peer swarm conversation with real API tools...")
-    result = await Runner.run(flight_agent, user_prompt)
+    result = await Runner.run(flight_agent, user_prompt, hooks=tracer)
 
-    # Trace tool calls and handoffs
-    for item in result.new_items:
-        item_type = getattr(item, "type", type(item).__name__)
-        if "handoff" in item_type.lower():
-            target = getattr(item, "target_agent_name", None) or getattr(item, "agent", None)
-            target_name = getattr(target, "name", str(target))
-            print_handoff("Peer", target_name, "Contextual handoff across mesh")
-        elif item_type == "tool_call_item":
-            raw = getattr(item, "raw_item", None)
-            name = getattr(raw, "name", "tool")
-            args = getattr(raw, "arguments", "{}")
-            try:
-                parsed_args = json.loads(args) if isinstance(args, str) else args
-            except Exception:
-                parsed_args = {"raw": args}
-            print_tool_call(name, parsed_args)
-        elif item_type == "tool_call_output_item":
-            output = str(getattr(item, "output", ""))
-            console.print(f"      [dim green]↳ Real API Response:[/dim green] [dim]{output[:140]}...[/dim]")
+    # Render complete inter-agent comms ledger and sequence diagram
+    tracer.render_summary_ledger()
+    tracer.render_sequence_diagram()
 
     last_agent_name = getattr(result.last_agent, "name", "Specialist")
     print_agent_step("System", f"Swarm journey finalized by: [bold cyan]{last_agent_name}[/bold cyan]")

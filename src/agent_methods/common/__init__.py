@@ -18,6 +18,7 @@ from .ui import (
     print_result_panel,
     print_explainer,
 )
+from .tracer import CommsTracer, CommsPacket
 
 __all__ = [
     "DEFAULT_MODEL",
@@ -35,4 +36,6 @@ __all__ = [
     "print_handoff",
     "print_result_panel",
     "print_explainer",
+    "CommsTracer",
+    "CommsPacket",
 ]

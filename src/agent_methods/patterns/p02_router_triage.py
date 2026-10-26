@@ -65,6 +65,7 @@ from agent_methods.common import (
     print_handoff,
     print_result_panel,
     print_explainer,
+    CommsTracer,
 )
 
 # -------------------------------------------------------------------------
@@ -238,25 +239,15 @@ async def run(query: str | None = None, example_id: int = 1) -> str:
 
     console.print(f"[bold cyan]User Query:[/bold cyan] {user_prompt}\n")
 
-    print_agent_step("TriageRouter", "Analyzing user intent and routing to live specialist...")
-    result = await Runner.run(triage_agent, user_prompt)
+    tracer = CommsTracer(scenario_title="Pattern 02: Router / Triage")
+    tracer.record_user_query(user_prompt, triage_agent.name)
 
-    # Inspect trajectory
-    for item in result.new_items:
-        item_type = getattr(item, "type", type(item).__name__)
-        if "handoff" in item_type.lower():
-            target_agent = getattr(item, "target_agent_name", None) or getattr(item, "agent", None)
-            target_name = getattr(target_agent, "name", str(target_agent))
-            print_handoff("TriageRouter", target_name, "Specialist matched")
-        elif item_type == "tool_call_item":
-            raw = getattr(item, "raw_item", None)
-            name = getattr(raw, "name", "tool")
-            args = getattr(raw, "arguments", "{}")
-            try:
-                parsed_args = json.loads(args) if isinstance(args, str) else args
-            except Exception:
-                parsed_args = {"raw": args}
-            print_tool_call(name, parsed_args)
+    print_agent_step("TriageRouter", "Analyzing user intent and routing to live specialist...")
+    result = await Runner.run(triage_agent, user_prompt, hooks=tracer)
+
+    # Render complete inter-agent comms ledger and sequence diagram
+    tracer.render_summary_ledger()
+    tracer.render_sequence_diagram()
 
     print_agent_step("System", f"Final responding agent: [bold cyan]{result.last_agent.name}[/bold cyan]")
     print_result_panel(f"Response from {result.last_agent.name}", str(result.final_output))

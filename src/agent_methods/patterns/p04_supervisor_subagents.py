@@ -86,6 +86,7 @@ from agent_methods.common import (
     print_tool_call,
     print_result_panel,
     print_explainer,
+    CommsTracer,
 )
 
 # -------------------------------------------------------------------------
@@ -277,24 +278,15 @@ async def run(query: str | None = None, example_id: int = 1) -> str:
 
     console.print(f"[bold cyan]User Query:[/bold cyan] {user_prompt}\n")
 
-    print_agent_step(lead_strategist.name, "Supervisor delegating subtasks to subagent tools...")
-    result = await Runner.run(lead_strategist, user_prompt)
+    tracer = CommsTracer(scenario_title="Pattern 04: Supervisor & Subagents")
+    tracer.record_user_query(user_prompt, lead_strategist.name)
 
-    # Trace supervisor tool calls
-    for item in result.new_items:
-        item_type = getattr(item, "type", type(item).__name__)
-        if item_type == "tool_call_item":
-            raw = getattr(item, "raw_item", None)
-            name = getattr(raw, "name", "tool")
-            args = getattr(raw, "arguments", "{}")
-            try:
-                parsed_args = json.loads(args) if isinstance(args, str) else args
-            except Exception:
-                parsed_args = {"raw": args}
-            print_tool_call(name, parsed_args)
-        elif item_type == "tool_call_output_item":
-            output = str(getattr(item, "output", ""))
-            console.print(f"      [dim green]↳ Subagent Return:[/dim green] [dim]{output[:140]}...[/dim]")
+    print_agent_step(lead_strategist.name, "Supervisor delegating subtasks to subagent tools...")
+    result = await Runner.run(lead_strategist, user_prompt, hooks=tracer)
+
+    # Render complete inter-agent comms ledger and sequence diagram
+    tracer.render_summary_ledger()
+    tracer.render_sequence_diagram()
 
     print_result_panel("Consolidated Executive Investment Memo", str(result.final_output))
     return str(result.final_output)

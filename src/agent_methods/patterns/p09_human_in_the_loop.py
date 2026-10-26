@@ -276,7 +276,7 @@ async def run(query: str | None = None, example_id: int = 1, tracer: CommsTracer
 
             tracer.record_packet("Human Supervisor", devops_agent.name, "HANDOFF", "Human Sign-off Granted: Resuming paused execution", {"status": "APPROVED"})
             console.print("  [bold green]✓ Operator Approval Granted. Resuming execution with disk audit log...[/bold green]\n")
-            result = await Runner.resume(devops_agent, state, hooks=tracer)
+            result = await Runner.run(devops_agent, state, hooks=tracer)
 
         tracer.render_summary_ledger()
         tracer.render_sequence_diagram()

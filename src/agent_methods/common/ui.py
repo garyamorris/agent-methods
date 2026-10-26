@@ -1,5 +1,6 @@
 """Rich terminal UI helpers and visual tracers for agent-methods."""
 
+from typing import Any
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
@@ -30,9 +31,23 @@ def print_agent_step(agent_name: str, action: str, details: str = "", style: str
     else:
         console.print(f"  {badge}")
 
-def print_tool_call(tool_name: str, args: dict, result: str | None = None) -> None:
+def print_tool_call(tool_name: str, args: Any, result: str | None = None) -> None:
     """Format a tool invocation and optional result."""
-    arg_str = ", ".join(f"{k}={v!r}" for k, v in args.items())
+    if isinstance(args, dict):
+        arg_str = ", ".join(f"{k}={v!r}" for k, v in args.items())
+    elif isinstance(args, str):
+        try:
+            import json
+            parsed = json.loads(args)
+            if isinstance(parsed, dict):
+                arg_str = ", ".join(f"{k}={v!r}" for k, v in parsed.items())
+            else:
+                arg_str = str(args)
+        except Exception:
+            arg_str = args
+    else:
+        arg_str = str(args)
+
     console.print(f"    [magenta]↳ [TOOL CALL][/magenta] [bold]{tool_name}[/bold]({arg_str})")
     if result is not None:
         console.print(f"    [dim green]↳ [TOOL RETURN][/dim green] {result}")

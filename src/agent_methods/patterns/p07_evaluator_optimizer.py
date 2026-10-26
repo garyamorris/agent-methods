@@ -177,9 +177,9 @@ evaluator_agent = Agent(
     model=DEFAULT_MODEL,
     instructions=(
         "You are an exacting Senior Staff Software Engineer and Automated Code Auditor. "
-        "When evaluating candidate code, ALWAYS call `execute_python_sandbox_test` to verify that the code "
-        "actually compiles and passes test assertions in the sandbox! "
-        "You MUST return your verdict strictly as a valid JSON object matching the EvaluationReport schema:\n"
+        "When evaluating candidate code, call `execute_python_sandbox_test` once to verify that the code "
+        "compiles and passes test assertions in the sandbox. "
+        "Immediately after observing the test result, output your verdict strictly as a valid JSON object matching the EvaluationReport schema:\n"
         "{\n"
         '  "score": <0-100>,\n'
         '  "passed": <true/false>,\n'
@@ -187,7 +187,7 @@ evaluator_agent = Agent(
         '  "weaknesses": ["..."],\n'
         '  "suggested_improvements": ["..."]\n'
         "}\n"
-        "Be strict! Do NOT pass code if the sandbox test fails or has missing edge cases."
+        "Do not call tools in a loop. Output the JSON verdict immediately."
     ),
     tools=[execute_python_sandbox_test],
 )
@@ -279,7 +279,7 @@ async def run(query: str | None = None, example_id: int = 1, tracer: CommsTracer
             f"Test Assertions to verify in sandbox:\n{test_harness}\n\n"
             f"Run the sandbox test and output your EvaluationReport JSON."
         )
-        eval_res = await Runner.run(evaluator_agent, eval_prompt, hooks=tracer)
+        eval_res = await Runner.run(evaluator_agent, eval_prompt, hooks=tracer, max_turns=15)
         eval_output = str(eval_res.final_output)
 
         # Parse evaluation JSON

@@ -209,7 +209,7 @@ triage_agent = Agent(
 # Runner
 # -------------------------------------------------------------------------
 
-async def run(query: str | None = None, example_id: int = 1) -> str:
+async def run(query: str | None = None, example_id: int = 1, tracer: CommsTracer | None = None) -> str:
     """Execute triage routing with real public API handoff execution."""
     ensure_api_key()
 
@@ -239,7 +239,8 @@ async def run(query: str | None = None, example_id: int = 1) -> str:
 
     console.print(f"[bold cyan]User Query:[/bold cyan] {user_prompt}\n")
 
-    tracer = CommsTracer(scenario_title="Pattern 02: Router / Triage")
+    if tracer is None:
+        tracer = CommsTracer(scenario_title="Pattern 02: Router / Triage")
     tracer.record_user_query(user_prompt, triage_agent.name)
 
     print_agent_step("TriageRouter", "Analyzing user intent and routing to live specialist...")

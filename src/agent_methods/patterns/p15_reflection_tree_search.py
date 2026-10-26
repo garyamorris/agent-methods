@@ -83,6 +83,7 @@ from agent_methods.common import (
     print_tool_call,
     print_result_panel,
     print_explainer,
+    CommsTracer,
 )
 
 # -------------------------------------------------------------------------
@@ -173,7 +174,7 @@ state_evaluator = Agent(
 # Runner
 # -------------------------------------------------------------------------
 
-async def run(query: str | None = None, example_id: int = 1) -> str:
+async def run(query: str | None = None, example_id: int = 1, tracer: CommsTracer | None = None) -> str:
     """Execute Tree-of-Thought search with heuristic evaluation and rollback."""
     ensure_api_key()
 
@@ -209,9 +210,13 @@ async def run(query: str | None = None, example_id: int = 1) -> str:
 
     console.print(f"[bold cyan]Root Problem Statement:[/bold cyan] {dilemma}\n")
 
+    if tracer is None:
+        tracer = CommsTracer(scenario_title="Pattern 15: Reflection Tree Search")
+    tracer.record_user_query(dilemma, branch_generator.name)
+
     # Step 1: Branch Generation
     print_agent_step(branch_generator.name, "Exploring and generating 3 distinct architectural branches...")
-    gen_res = await Runner.run(branch_generator, f"Generate 3 distinct architectural branches for: {dilemma}")
+    gen_res = await Runner.run(branch_generator, f"Generate 3 distinct architectural branches for: {dilemma}", hooks=tracer)
     gen_text = str(gen_res.final_output)
 
     branches: list[CandidateBranch] = []
@@ -238,6 +243,7 @@ async def run(query: str | None = None, example_id: int = 1) -> str:
     console.print()
 
     # Step 2: Evaluation with Real GitHub Signals
+    tracer.record_packet(branch_generator.name, state_evaluator.name, "HANDOFF", f"Submit {len(branches)} candidate tree branches for viability evaluation", {"branch_count": len(branches)})
     print_agent_step(state_evaluator.name, "Evaluating branch viability using real GitHub ecosystem metrics...")
     eval_prompt = (
         f"Problem: {dilemma}\n\n"
@@ -245,7 +251,7 @@ async def run(query: str | None = None, example_id: int = 1) -> str:
         + "\n".join(f"- Branch {b.branch_id} ({b.title}): {b.description}" for b in branches)
         + "\n\nQuery GitHub metrics for underlying technologies (e.g. redis/redis or postgres/postgres) and output scores."
     )
-    eval_res = await Runner.run(state_evaluator, eval_prompt)
+    eval_res = await Runner.run(state_evaluator, eval_prompt, hooks=tracer)
     eval_text = str(eval_res.final_output)
 
     # Heuristic scoring assignment
@@ -278,12 +284,17 @@ async def run(query: str | None = None, example_id: int = 1) -> str:
     console.print()
 
     winning_branch = next((b for b in branches if b.status == "SELECTED"), branches[0])
+    tracer.record_packet(state_evaluator.name, "System", "AGENT_END", f"Selected optimal branch: {winning_branch.title} (Score: {winning_branch.feasibility_score}/100)", {"winner": winning_branch.title, "score": winning_branch.feasibility_score})
+
     summary_panel = (
         f"Optimal Winning Branch: Branch {winning_branch.branch_id} - {winning_branch.title}\n"
         f"Viability Score: {winning_branch.feasibility_score}/100\n"
         f"Strategy: {winning_branch.description}\n\n"
         f"Evaluator Synthesis:\n{eval_text[:400]}..."
     )
+
+    tracer.render_summary_ledger()
+    tracer.render_sequence_diagram()
 
     print_result_panel("Optimal Path Map (Tree-of-Thought)", summary_panel)
     return summary_panel

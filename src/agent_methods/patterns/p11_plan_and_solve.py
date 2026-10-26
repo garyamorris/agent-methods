@@ -95,6 +95,7 @@ from agent_methods.common import (
     print_tool_call,
     print_result_panel,
     print_explainer,
+    CommsTracer,
 )
 
 # -------------------------------------------------------------------------
@@ -236,7 +237,7 @@ replanner_agent = Agent(
 # Runner Loop
 # -------------------------------------------------------------------------
 
-async def run(query: str | None = None, example_id: int = 1) -> str:
+async def run(query: str | None = None, example_id: int = 1, tracer: CommsTracer | None = None) -> str:
     """Execute dynamic plan-and-solve loop with real tool invocations."""
     ensure_api_key()
 
@@ -274,9 +275,13 @@ async def run(query: str | None = None, example_id: int = 1) -> str:
 
     console.print(f"[bold cyan]Mission Objective:[/bold cyan] {objective}\n")
 
+    if tracer is None:
+        tracer = CommsTracer(scenario_title="Pattern 11: Dynamic Plan-and-Solve")
+    tracer.record_user_query(objective, planner_agent.name)
+
     # Step 1: Initial Planning
     print_agent_step(planner_agent.name, "Formulating initial dynamic execution plan...")
-    plan_res = await Runner.run(planner_agent, f"Create a 3-step plan for: {objective}")
+    plan_res = await Runner.run(planner_agent, f"Create a 3-step plan for: {objective}", hooks=tracer)
     plan_text = str(plan_res.final_output)
 
     # Parse initial plan JSON
@@ -306,6 +311,7 @@ async def run(query: str | None = None, example_id: int = 1) -> str:
     execution_log = []
     for step in plan.steps[:2]:  # Execute first 2 steps dynamically
         step.status = "IN_PROGRESS"
+        tracer.record_packet(planner_agent.name, executor_agent.name, "HANDOFF", f"Dispatch Step {step.step_id}: {step.description}", {"step_id": step.step_id})
         print_agent_step(executor_agent.name, f"Executing Step {step.step_id}: {step.description}...")
 
         exec_prompt = (
@@ -313,7 +319,7 @@ async def run(query: str | None = None, example_id: int = 1) -> str:
             f"Current Step to execute: {step.description}\n"
             f"Use your tools (fetch_github_repo_contents, analyze_python_syntax_and_ast, search_security_advisories) as needed."
         )
-        res_exec = await Runner.run(executor_agent, exec_prompt)
+        res_exec = await Runner.run(executor_agent, exec_prompt, hooks=tracer)
         step.result_summary = str(res_exec.final_output)
         step.status = "COMPLETED"
         execution_log.append(f"Step {step.step_id} Output: {step.result_summary[:200]}...")
@@ -329,14 +335,18 @@ async def run(query: str | None = None, example_id: int = 1) -> str:
         console.print(f"  [bold green]✓ Step {step.step_id} completed successfully[/bold green]\n")
 
     # Step 3: Synthesis / Replanner final signoff
+    tracer.record_packet(executor_agent.name, replanner_agent.name, "HANDOFF", "Forward execution log to Replanner for final dossier", {"completed_steps": 2})
     print_agent_step(replanner_agent.name, "Synthesizing progress and delivering modernization briefing...")
     final_prompt = (
         f"Objective: {plan.objective}\n\n"
         f"Execution History:\n" + "\n\n".join(execution_log) + "\n\n"
         f"Deliver a consolidated modernization dossier summarizing findings and recommendations."
     )
-    final_res = await Runner.run(replanner_agent, final_prompt)
+    final_res = await Runner.run(replanner_agent, final_prompt, hooks=tracer)
     plan.is_complete = True
+
+    tracer.render_summary_ledger()
+    tracer.render_sequence_diagram()
 
     print_result_panel("Consolidated Modernization Dossier", str(final_res.final_output))
     return str(final_res.final_output)

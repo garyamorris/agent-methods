@@ -81,6 +81,7 @@ from agent_methods.common import (
     print_tool_call,
     print_result_panel,
     print_explainer,
+    CommsTracer,
 )
 
 # -------------------------------------------------------------------------
@@ -210,7 +211,7 @@ remediation_agent = Agent(
 # Runner
 # -------------------------------------------------------------------------
 
-async def run(query: str | None = None, example_id: int = 1) -> str:
+async def run(query: str | None = None, example_id: int = 1, tracer: CommsTracer | None = None) -> str:
     """Execute event-driven blackboard coordination loop with real network probes."""
     ensure_api_key()
 
@@ -243,21 +244,30 @@ async def run(query: str | None = None, example_id: int = 1) -> str:
 
     console.print(f"[bold cyan]Incident ID:[/bold cyan] {bb.incident_id} | [bold yellow]Status:[/bold yellow] {bb.status}\n")
 
+    if tracer is None:
+        tracer = CommsTracer(scenario_title="Pattern 10: Event-Driven Shared Blackboard")
+    tracer.record_user_query(f"Investigate {target_system}", "Shared Blackboard")
+
     # Step 1: Telemetry Diagnostics (Probes Real Endpoint)
+    tracer.record_packet("Shared Blackboard", telemetry_agent.name, "HANDOFF", f"Trigger TelemetryAgent on {target_system}")
     print_agent_step(telemetry_agent.name, f"Running live HTTP latency probes against '{probe_target}'...")
     res_tel = await Runner.run(
         telemetry_agent,
         f"Probe latency for {probe_target} and {probe_target}/events. Summarize latency and reachability.",
+        hooks=tracer,
     )
     tel_summary = str(res_tel.final_output)
     bb.telemetry_findings.append(tel_summary)
     bb.log_event("TelemetryAgent", "Live network latency probes completed.")
 
     # Step 2: Threat Intelligence (Searches live outage discussions)
+    tracer.record_packet(telemetry_agent.name, "Shared Blackboard", "HANDOFF", "Post network latency telemetry to Blackboard")
+    tracer.record_packet("Shared Blackboard", threat_hunter_agent.name, "HANDOFF", "Trigger ThreatHunterAgent with fresh telemetry findings")
     print_agent_step(threat_hunter_agent.name, "Querying HackerNews for active upstream outage intelligence...")
     res_threat = await Runner.run(
         threat_hunter_agent,
         f"Check HackerNews for recent outage reports on 'github'. Given telemetry: {tel_summary[:200]}, formulate a hypothesis.",
+        hooks=tracer,
     )
     threat_summary = str(res_threat.final_output)
     bb.threat_hypotheses.append(threat_summary)
@@ -266,8 +276,10 @@ async def run(query: str | None = None, example_id: int = 1) -> str:
     # Advance blackboard status
     bb.status = "MITIGATING"
     bb.log_event("Coordinator", "Status transitioned to MITIGATING.")
+    tracer.record_packet(threat_hunter_agent.name, "Shared Blackboard", "HANDOFF", "Blackboard status transitioned: INVESTIGATING ➔ MITIGATING")
 
     # Step 3: Remediation & Recovery
+    tracer.record_packet("Shared Blackboard", remediation_agent.name, "HANDOFF", "Trigger RemediationAgent on MITIGATING status")
     print_agent_step(remediation_agent.name, "Applying mitigation policy and verifying resolution on blackboard...")
     remed_prompt = (
         f"Blackboard State:\n"
@@ -277,11 +289,12 @@ async def run(query: str | None = None, example_id: int = 1) -> str:
         f"- Hypotheses: {threat_summary}\n\n"
         f"Apply appropriate edge traffic policy using `deploy_edge_traffic_policy` and document resolution."
     )
-    res_remed = await Runner.run(remediation_agent, remed_prompt)
+    res_remed = await Runner.run(remediation_agent, remed_prompt, hooks=tracer)
     remed_summary = str(res_remed.final_output)
     bb.applied_mitigations.append(remed_summary)
     bb.status = "RESOLVED"
     bb.log_event("RemediationAgent", "Mitigation applied. Incident resolved.")
+    tracer.record_packet(remediation_agent.name, "Shared Blackboard", "AGENT_END", "Incident marked RESOLVED with edge mitigation policy applied")
 
     # Final Blackboard Dossier
     dossier = (
@@ -289,6 +302,9 @@ async def run(query: str | None = None, example_id: int = 1) -> str:
         f"Timeline:\n" + "\n".join(f"  • {e}" for e in bb.timeline) + "\n\n"
         f"Remediation Synthesis:\n{remed_summary}"
     )
+
+    tracer.render_summary_ledger()
+    tracer.render_sequence_diagram()
 
     print_result_panel(f"Final Incident Blackboard Dossier ({bb.incident_id})", dossier)
     return dossier

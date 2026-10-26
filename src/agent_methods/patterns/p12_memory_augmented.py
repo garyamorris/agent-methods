@@ -86,6 +86,7 @@ from agent_methods.common import (
     print_tool_call,
     print_result_panel,
     print_explainer,
+    CommsTracer,
 )
 
 # -------------------------------------------------------------------------
@@ -206,7 +207,7 @@ memory_agent = Agent(
 # Runner
 # -------------------------------------------------------------------------
 
-async def run(query: str | None = None, example_id: int = 1) -> str:
+async def run(query: str | None = None, example_id: int = 1, tracer: CommsTracer | None = None) -> str:
     """Execute memory-augmented cognitive agent with disk-backed episodic store."""
     ensure_api_key()
 
@@ -242,8 +243,12 @@ async def run(query: str | None = None, example_id: int = 1) -> str:
 
     console.print(f"[bold cyan]User Query:[/bold cyan] {user_prompt}\n")
 
+    if tracer is None:
+        tracer = CommsTracer(scenario_title="Pattern 12: Memory-Augmented Architecture")
+    tracer.record_user_query(user_prompt, memory_agent.name)
+
     print_agent_step(memory_agent.name, "Recalling episodic profile and querying semantic knowledge base...")
-    result = await Runner.run(memory_agent, user_prompt)
+    result = await Runner.run(memory_agent, user_prompt, hooks=tracer)
 
     # Trace memory tool calls
     for item in result.new_items:
@@ -255,6 +260,9 @@ async def run(query: str | None = None, example_id: int = 1) -> str:
         elif getattr(item, "type", "") == "tool_call_output_item":
             output = str(getattr(item, "output", ""))
             console.print(f"      [dim green]↳ Memory Store Return:[/dim green] [dim]{output[:140]}...[/dim]")
+
+    tracer.render_summary_ledger()
+    tracer.render_sequence_diagram()
 
     print_result_panel("Memory-Synthesized Recommendation", str(result.final_output))
     return str(result.final_output)

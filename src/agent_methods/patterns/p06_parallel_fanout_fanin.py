@@ -82,6 +82,7 @@ from agent_methods.common import (
     print_tool_call,
     print_result_panel,
     print_explainer,
+    CommsTracer,
 )
 
 # -------------------------------------------------------------------------
@@ -210,7 +211,7 @@ chief_risk_officer = Agent(
 # Runner
 # -------------------------------------------------------------------------
 
-async def run(query: str | None = None, example_id: int = 1) -> str:
+async def run(query: str | None = None, example_id: int = 1, tracer: CommsTracer | None = None) -> str:
     """Execute concurrent fan-out across 3 agents and fan-in aggregation."""
     ensure_api_key()
 
@@ -250,13 +251,17 @@ async def run(query: str | None = None, example_id: int = 1) -> str:
 
     console.print(f"[bold cyan]Initiative Under Review:[/bold cyan] {user_prompt}\n")
 
+    if tracer is None:
+        tracer = CommsTracer(scenario_title="Pattern 06: Parallel Fan-Out / Fan-In")
+    tracer.record_user_query(user_prompt, "Parallel Dispatcher")
+
     # Fan-Out: Trigger all 3 auditors concurrently
     print_agent_step("System", "Fanning out 3 domain auditors concurrently via asyncio.gather()...")
     start_time = time.perf_counter()
 
-    task1 = Runner.run(cybersecurity_agent, user_prompt)
-    task2 = Runner.run(compliance_agent, user_prompt)
-    task3 = Runner.run(financial_risk_agent, user_prompt)
+    task1 = Runner.run(cybersecurity_agent, user_prompt, hooks=tracer)
+    task2 = Runner.run(compliance_agent, user_prompt, hooks=tracer)
+    task3 = Runner.run(financial_risk_agent, user_prompt, hooks=tracer)
 
     res1, res2, res3 = await asyncio.gather(task1, task2, task3)
     parallel_elapsed = time.perf_counter() - start_time
@@ -271,13 +276,17 @@ async def run(query: str | None = None, example_id: int = 1) -> str:
     )
 
     # Fan-In: Aggregator synthesizes the matrix
+    tracer.record_packet("Parallel Dispatcher", chief_risk_officer.name, "HANDOFF", "Forward gathered specialist reports to Chief Risk Officer", {"fan_in_count": 3})
     print_agent_step(chief_risk_officer.name, "Fanning in: Synthesizing executive risk matrix...")
     aggregator_prompt = (
         f"Original User Request: {user_prompt}\n\n"
         f"Synthesize the following 3 concurrent specialist findings into an integrated risk matrix:\n\n"
         f"{gathered_briefing}"
     )
-    final_res = await Runner.run(chief_risk_officer, aggregator_prompt)
+    final_res = await Runner.run(chief_risk_officer, aggregator_prompt, hooks=tracer)
+
+    tracer.render_summary_ledger()
+    tracer.render_sequence_diagram()
 
     print_result_panel("Chief Risk Officer: Consolidated Executive Matrix", str(final_res.final_output))
     return str(final_res.final_output)

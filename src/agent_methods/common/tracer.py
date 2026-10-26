@@ -29,14 +29,26 @@ class CommsPacket:
     summary: str
     payload: Any = None
 
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "seq": self.seq,
+            "timestamp_offset": self.timestamp_offset,
+            "source": self.source,
+            "target": self.target,
+            "packet_type": self.packet_type,
+            "summary": self.summary,
+            "payload": self.payload,
+        }
+
 
 class CommsTracer(RunHooks):
     """Real-time observability hook capturing inter-agent wire communications."""
 
-    def __init__(self, scenario_title: str = "", display_live: bool = True):
+    def __init__(self, scenario_title: str = "", display_live: bool = True, event_listener: Any | None = None):
         super().__init__()
         self.scenario_title = scenario_title
         self.display_live = display_live
+        self.event_listener = event_listener
         self.start_time = time.perf_counter()
         self.packets: list[CommsPacket] = []
         self._seq = 1
@@ -45,6 +57,16 @@ class CommsTracer(RunHooks):
 
     def _now(self) -> float:
         return round(time.perf_counter() - self.start_time, 3)
+
+    def _dispatch_packet(self, pkt: CommsPacket) -> None:
+        self.packets.append(pkt)
+        if self.event_listener:
+            try:
+                self.event_listener(pkt)
+            except Exception:
+                pass
+        if self.display_live:
+            self._print_packet(pkt)
 
     def record_user_query(self, query: str, target_agent: str) -> None:
         """Record the initial incoming user prompt packet."""
@@ -57,10 +79,29 @@ class CommsTracer(RunHooks):
             summary="Initial User Query Ingestion",
             payload=query,
         )
-        self.packets.append(pkt)
         self._seq += 1
-        if self.display_live:
-            self._print_packet(pkt)
+        self._dispatch_packet(pkt)
+
+    def record_packet(
+        self,
+        source: str,
+        target: str,
+        packet_type: PacketType,
+        summary: str,
+        payload: Any = None,
+    ) -> None:
+        """Record an explicit inter-agent communication event."""
+        pkt = CommsPacket(
+            seq=self._seq,
+            timestamp_offset=self._now(),
+            source=source,
+            target=target,
+            packet_type=packet_type,
+            summary=summary,
+            payload=payload,
+        )
+        self._seq += 1
+        self._dispatch_packet(pkt)
 
     async def on_agent_start(self, context, agent) -> None:
         self._active_agent = getattr(agent, "name", str(agent))
@@ -73,10 +114,8 @@ class CommsTracer(RunHooks):
             summary=f"Context Turn Transferred to [{self._active_agent}]",
             payload={"model": getattr(agent, "model", "deepseek-chat"), "tools_count": len(getattr(agent, "tools", []))},
         )
-        self.packets.append(pkt)
         self._seq += 1
-        if self.display_live:
-            self._print_packet(pkt)
+        self._dispatch_packet(pkt)
 
     async def on_handoff(self, context, from_agent, to_agent) -> None:
         from_name = getattr(from_agent, "name", str(from_agent))
@@ -90,10 +129,8 @@ class CommsTracer(RunHooks):
             summary=f"SDK Handoff: [{from_name}] transfers conversation context to [{to_name}]",
             payload={"from": from_name, "to": to_name, "mechanism": "Native OpenAI Agents SDK handoff()"},
         )
-        self.packets.append(pkt)
         self._seq += 1
-        if self.display_live:
-            self._print_packet(pkt)
+        self._dispatch_packet(pkt)
 
     async def on_tool_start(self, context, agent, tool) -> None:
         agent_name = getattr(agent, "name", str(agent))
@@ -109,10 +146,8 @@ class CommsTracer(RunHooks):
             summary=f"Agent invokes real API tool [{tool_name}]",
             payload={"tool": tool_name},
         )
-        self.packets.append(pkt)
         self._seq += 1
-        if self.display_live:
-            self._print_packet(pkt)
+        self._dispatch_packet(pkt)
 
     async def on_tool_end(self, context, agent, tool, result) -> None:
         agent_name = getattr(agent, "name", str(agent))
@@ -130,10 +165,8 @@ class CommsTracer(RunHooks):
             summary=f"Observation returned from [{tool_name}] ({duration_ms}ms)",
             payload={"duration_ms": duration_ms, "result_preview": result_str[:250] + ("..." if len(result_str) > 250 else "")},
         )
-        self.packets.append(pkt)
         self._seq += 1
-        if self.display_live:
-            self._print_packet(pkt)
+        self._dispatch_packet(pkt)
 
     async def on_agent_end(self, context, agent, output) -> None:
         agent_name = getattr(agent, "name", str(agent))
@@ -147,10 +180,8 @@ class CommsTracer(RunHooks):
             summary=f"[{agent_name}] completed turn synthesis",
             payload={"output_preview": out_str[:200] + ("..." if len(out_str) > 200 else "")},
         )
-        self.packets.append(pkt)
         self._seq += 1
-        if self.display_live:
-            self._print_packet(pkt)
+        self._dispatch_packet(pkt)
 
     def _print_packet(self, pkt: CommsPacket) -> None:
         """Render a single packet in the live wire feed."""

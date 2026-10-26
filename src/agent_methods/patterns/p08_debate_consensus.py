@@ -87,6 +87,7 @@ from agent_methods.common import (
     print_tool_call,
     print_result_panel,
     print_explainer,
+    CommsTracer,
 )
 
 # -------------------------------------------------------------------------
@@ -184,7 +185,7 @@ judge_moderator = Agent(
 # Runner
 # -------------------------------------------------------------------------
 
-async def run(query: str | None = None, example_id: int = 1) -> str:
+async def run(query: str | None = None, example_id: int = 1, tracer: CommsTracer | None = None) -> str:
     """Execute 2-round adversarial debate followed by judicial consensus."""
     ensure_api_key()
 
@@ -220,38 +221,47 @@ async def run(query: str | None = None, example_id: int = 1) -> str:
 
     console.print(f"[bold cyan]Architectural Dilemma:[/bold cyan] {dilemma_prompt}\n")
 
+    if tracer is None:
+        tracer = CommsTracer(scenario_title="Pattern 08: Multi-Agent Debate & Deliberation")
+    tracer.record_user_query(dilemma_prompt, "Debate Arena")
+
     # Round 1: Opening Arguments
     console.print("[bold yellow]═══════ Round 1: Opening Arguments ═══════[/bold yellow]")
+    tracer.record_packet("Debate Arena", advocate_monolith.name, "AGENT_START", "Round 1: Request opening defense for Option A", {"round": 1})
     print_agent_step(advocate_monolith.name, "Formulating opening case for Modular Monolith...")
-    res_m1 = await Runner.run(advocate_monolith, dilemma_prompt)
+    res_m1 = await Runner.run(advocate_monolith, dilemma_prompt, hooks=tracer)
     opening_monolith = str(res_m1.final_output)
 
+    tracer.record_packet("Debate Arena", advocate_microservices.name, "AGENT_START", "Round 1: Request opening defense for Option B", {"round": 1})
     print_agent_step(advocate_microservices.name, "Formulating opening case for Microservices...")
-    res_s1 = await Runner.run(advocate_microservices, dilemma_prompt)
+    res_s1 = await Runner.run(advocate_microservices, dilemma_prompt, hooks=tracer)
     opening_microservices = str(res_s1.final_output)
 
     # Round 2: Cross-Rebuttal
     console.print("\n[bold yellow]═══════ Round 2: Cross-Rebuttal ═══════[/bold yellow]")
+    tracer.record_packet(advocate_microservices.name, advocate_monolith.name, "HANDOFF", "Pass Microservices arguments to Monolith advocate for rebuttal", {"round": 2})
     print_agent_step(advocate_monolith.name, "Rebutting Microservices claims...")
     reb_m_prompt = (
         f"The user dilemma is: {dilemma_prompt}\n\n"
         f"Your opponent made this case for Microservices:\n{opening_microservices}\n\n"
         f"Deliver a rigorous, surgical rebuttal pointing out distributed systems fallacies and operational overhead."
     )
-    res_m2 = await Runner.run(advocate_monolith, reb_m_prompt)
+    res_m2 = await Runner.run(advocate_monolith, reb_m_prompt, hooks=tracer)
     rebuttal_monolith = str(res_m2.final_output)
 
+    tracer.record_packet(advocate_monolith.name, advocate_microservices.name, "HANDOFF", "Pass Monolith arguments to Microservices advocate for rebuttal", {"round": 2})
     print_agent_step(advocate_microservices.name, "Rebutting Modular Monolith claims...")
     reb_s_prompt = (
         f"The user dilemma is: {dilemma_prompt}\n\n"
         f"Your opponent made this case for Modular Monoliths:\n{opening_monolith}\n\n"
         f"Deliver a rigorous rebuttal pointing out coupling traps, deploy bottlenecks, and Conway's Law scaling limits."
     )
-    res_s2 = await Runner.run(advocate_microservices, reb_s_prompt)
+    res_s2 = await Runner.run(advocate_microservices, reb_s_prompt, hooks=tracer)
     rebuttal_microservices = str(res_s2.final_output)
 
     # Round 3: Adjudication
     console.print("\n[bold yellow]═══════ Judicial Adjudication ═══════[/bold yellow]")
+    tracer.record_packet("Debate Arena", judge_moderator.name, "HANDOFF", "Submit full debate transcript to CTO Judicial Arbiter", {"round": 3})
     print_agent_step(judge_moderator.name, "CTO Judicial Moderator evaluating arguments and formulating verdict...")
 
     judicial_brief = (
@@ -262,8 +272,11 @@ async def run(query: str | None = None, example_id: int = 1) -> str:
         f"--- ADVOCATE MICROSERVICES (REBUTTAL) ---\n{rebuttal_microservices}\n"
     )
 
-    verdict_res = await Runner.run(judge_moderator, judicial_brief)
+    verdict_res = await Runner.run(judge_moderator, judicial_brief, hooks=tracer)
     final_verdict = str(verdict_res.final_output)
+
+    tracer.render_summary_ledger()
+    tracer.render_sequence_diagram()
 
     print_result_panel("Chief Technology Officer: Definitive Consensus Verdict", final_verdict)
     return final_verdict

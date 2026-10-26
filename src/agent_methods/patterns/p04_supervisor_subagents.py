@@ -239,7 +239,7 @@ lead_strategist = Agent(
 # Runner
 # -------------------------------------------------------------------------
 
-async def run(query: str | None = None, example_id: int = 1) -> str:
+async def run(query: str | None = None, example_id: int = 1, tracer: CommsTracer | None = None) -> str:
     """Execute Supervisor & Subagents orchestrator loop against real public APIs."""
     ensure_api_key()
 
@@ -278,7 +278,8 @@ async def run(query: str | None = None, example_id: int = 1) -> str:
 
     console.print(f"[bold cyan]User Query:[/bold cyan] {user_prompt}\n")
 
-    tracer = CommsTracer(scenario_title="Pattern 04: Supervisor & Subagents")
+    if tracer is None:
+        tracer = CommsTracer(scenario_title="Pattern 04: Supervisor & Subagents")
     tracer.record_user_query(user_prompt, lead_strategist.name)
 
     print_agent_step(lead_strategist.name, "Supervisor delegating subtasks to subagent tools...")

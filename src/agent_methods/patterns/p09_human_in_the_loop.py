@@ -109,6 +109,7 @@ from agent_methods.common import (
     print_tool_call,
     print_result_panel,
     print_explainer,
+    CommsTracer,
 )
 
 # -------------------------------------------------------------------------
@@ -209,7 +210,7 @@ devops_agent = Agent(
 # Runner
 # -------------------------------------------------------------------------
 
-async def run(query: str | None = None, example_id: int = 1) -> str:
+async def run(query: str | None = None, example_id: int = 1, tracer: CommsTracer | None = None) -> str:
     """Execute guarded Human-in-the-Loop workflow with real disk state."""
     ensure_api_key()
 
@@ -245,9 +246,13 @@ async def run(query: str | None = None, example_id: int = 1) -> str:
 
     console.print(f"[bold cyan]User Request:[/bold cyan] {user_prompt}\n")
 
+    if tracer is None:
+        tracer = CommsTracer(scenario_title="Pattern 09: Human-in-the-Loop & Safety Guardrails")
+    tracer.record_user_query(user_prompt, devops_agent.name)
+
     try:
         print_agent_step(devops_agent.name, "Processing request through input guardrails...")
-        result = await Runner.run(devops_agent, user_prompt)
+        result = await Runner.run(devops_agent, user_prompt, hooks=tracer)
 
         # Check for approval interruption
         approval_items = [
@@ -260,6 +265,7 @@ async def run(query: str | None = None, example_id: int = 1) -> str:
             console.print("\n[bold yellow]⚠️  HUMAN-IN-THE-LOOP CHECKPOINT REACHED ⚠️[/bold yellow]")
             for app_item in approval_items:
                 tool_name = getattr(app_item, "tool_name", "execute_production_migration")
+                tracer.record_packet(devops_agent.name, "Human Supervisor", "HANDOFF", f"Execution Paused: Requires Human Sign-off for [{tool_name}]", {"tool": tool_name})
                 console.print(f"  [bold red]Action Paused:[/bold red] Agent requested execution of [cyan]{tool_name}[/cyan]")
                 console.print(f"  [dim]Human Operator: Inspecting payload and approving action automatically for educational demonstration...[/dim]")
 
@@ -268,8 +274,12 @@ async def run(query: str | None = None, example_id: int = 1) -> str:
             for app_item in approval_items:
                 state.approve(app_item)
 
+            tracer.record_packet("Human Supervisor", devops_agent.name, "HANDOFF", "Human Sign-off Granted: Resuming paused execution", {"status": "APPROVED"})
             console.print("  [bold green]✓ Operator Approval Granted. Resuming execution with disk audit log...[/bold green]\n")
-            result = await Runner.resume(devops_agent, state)
+            result = await Runner.resume(devops_agent, state, hooks=tracer)
+
+        tracer.render_summary_ledger()
+        tracer.render_sequence_diagram()
 
         print_result_panel("Final Guarded Output (DevOps Agent)", str(result.final_output))
         return str(result.final_output)

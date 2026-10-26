@@ -86,6 +86,7 @@ from agent_methods.common import (
     print_tool_call,
     print_result_panel,
     print_explainer,
+    CommsTracer,
 )
 
 # -------------------------------------------------------------------------
@@ -216,7 +217,7 @@ def tally_ballots(ballots: list[JurorBallot]) -> dict:
 # Runner
 # -------------------------------------------------------------------------
 
-async def run(query: str | None = None, example_id: int = 1) -> str:
+async def run(query: str | None = None, example_id: int = 1, tracer: CommsTracer | None = None) -> str:
     """Execute blind consensus voting across 3 diverse jurors."""
     ensure_api_key()
 
@@ -252,11 +253,15 @@ async def run(query: str | None = None, example_id: int = 1) -> str:
 
     console.print(f"[bold cyan]Proposal for Electoral Vote:[/bold cyan] {proposal}\n")
 
+    if tracer is None:
+        tracer = CommsTracer(scenario_title="Pattern 14: Consensus Voting & Calibration")
+    tracer.record_user_query(proposal, "Electoral Engine")
+
     # Blind Parallel Execution
     print_agent_step("ElectoralEngine", "Dispatching proposal to 3 independent jurors concurrently...")
-    task1 = Runner.run(juror_purist, proposal)
-    task2 = Runner.run(juror_sre, proposal)
-    task3 = Runner.run(juror_quant, proposal)
+    task1 = Runner.run(juror_purist, proposal, hooks=tracer)
+    task2 = Runner.run(juror_sre, proposal, hooks=tracer)
+    task3 = Runner.run(juror_quant, proposal, hooks=tracer)
 
     res1, res2, res3 = await asyncio.gather(task1, task2, task3)
 
@@ -287,6 +292,8 @@ async def run(query: str | None = None, example_id: int = 1) -> str:
     # Tally results
     results = tally_ballots(ballots)
 
+    tracer.record_packet("Juror Ensemble", "Electoral Engine", "AGENT_END", f"Tally Complete: {results['verdict']} ({results['weighted_percentage']} weighted approval)", {"results": results})
+
     console.print("[bold yellow]═══════ Electoral Ballots Cast ═══════[/bold yellow]")
     for b in ballots:
         color = "green" if b.vote.upper() == "APPROVE" else "red"
@@ -301,6 +308,9 @@ async def run(query: str | None = None, example_id: int = 1) -> str:
         f"Consensus Index: {results['consensus_index']}\n"
         f"Unanimous: {results['unanimity']}"
     )
+
+    tracer.render_summary_ledger()
+    tracer.render_sequence_diagram()
 
     print_result_panel("Calibrated Electoral Consensus Report", summary_panel)
     return summary_panel

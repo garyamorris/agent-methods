@@ -74,6 +74,7 @@ from agent_methods.common import (
     print_tool_call,
     print_result_panel,
     print_explainer,
+    CommsTracer,
 )
 
 # -------------------------------------------------------------------------
@@ -178,7 +179,7 @@ executive_ceo = Agent(
 # Runner
 # -------------------------------------------------------------------------
 
-async def run(query: str | None = None, example_id: int = 1) -> str:
+async def run(query: str | None = None, example_id: int = 1, tracer: CommsTracer | None = None) -> str:
     """Execute federated multi-team swarm with cross-cluster tool delegation."""
     ensure_api_key()
 
@@ -216,8 +217,12 @@ async def run(query: str | None = None, example_id: int = 1) -> str:
 
     console.print(f"[bold cyan]Executive Directive:[/bold cyan] {user_prompt}\n")
 
+    if tracer is None:
+        tracer = CommsTracer(scenario_title="Pattern 13: Federated Multi-Team Swarm")
+    tracer.record_user_query(user_prompt, executive_ceo.name)
+
     print_agent_step(executive_ceo.name, "CEO delegating tasks across autonomous department clusters...")
-    result = await Runner.run(executive_ceo, user_prompt)
+    result = await Runner.run(executive_ceo, user_prompt, hooks=tracer)
 
     # Trace CEO tool calls
     for item in result.new_items:
@@ -226,6 +231,9 @@ async def run(query: str | None = None, example_id: int = 1) -> str:
             name = getattr(raw, "name", "tool")
             args = getattr(raw, "arguments", "{}")
             print_tool_call(name, args)
+
+    tracer.render_summary_ledger()
+    tracer.render_sequence_diagram()
 
     print_result_panel("Unified Enterprise Launch Dossier", str(result.final_output))
     return str(result.final_output)

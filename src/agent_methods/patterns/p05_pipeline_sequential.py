@@ -77,6 +77,7 @@ from agent_methods.common import (
     print_tool_call,
     print_result_panel,
     print_explainer,
+    CommsTracer,
 )
 
 # -------------------------------------------------------------------------
@@ -201,7 +202,7 @@ editorial_reviewer = Agent(
 # Runner
 # -------------------------------------------------------------------------
 
-async def run(query: str | None = None, example_id: int = 1) -> str:
+async def run(query: str | None = None, example_id: int = 1, tracer: CommsTracer | None = None) -> str:
     """Execute Sequential Pipeline across 4 stages with real GitHub API ingestion."""
     ensure_api_key()
 
@@ -237,9 +238,13 @@ async def run(query: str | None = None, example_id: int = 1) -> str:
 
     console.print(f"[bold cyan]Pipeline Input:[/bold cyan] {user_prompt}\n")
 
+    if tracer is None:
+        tracer = CommsTracer(scenario_title="Pattern 05: Sequential Pipeline")
+    tracer.record_user_query(user_prompt, spec_extractor.name)
+
     # Stage 1: Extractor (queries real GitHub API)
     print_agent_step(spec_extractor.name, "Stage 1: Fetching and extracting live GitHub data...")
-    res1 = await Runner.run(spec_extractor, user_prompt)
+    res1 = await Runner.run(spec_extractor, user_prompt, hooks=tracer)
     output1 = str(res1.final_output)
 
     # Trace tools in Stage 1
@@ -253,30 +258,39 @@ async def run(query: str | None = None, example_id: int = 1) -> str:
     console.print(f"  [dim green]Stage 1 Output:[/dim green] [dim]{output1[:120]}...[/dim]\n")
 
     # Stage 2: Categorizer / Architect
+    tracer.record_packet(spec_extractor.name, curriculum_architect.name, "HANDOFF", "Forward structured API extraction to Architect", {"stage": 1})
     print_agent_step(curriculum_architect.name, "Stage 2: Structuring changes into SemVer hierarchy...")
     res2 = await Runner.run(
         curriculum_architect,
         f"Structure and categorize these extracted changes:\n\n{output1}",
+        hooks=tracer,
     )
     output2 = str(res2.final_output)
     console.print(f"  [dim green]Stage 2 Output:[/dim green] [dim]{output2[:120]}...[/dim]\n")
 
     # Stage 3: Writer
+    tracer.record_packet(curriculum_architect.name, tutorial_writer.name, "HANDOFF", "Forward SemVer architecture to Writer", {"stage": 2})
     print_agent_step(tutorial_writer.name, "Stage 3: Drafting customer-facing release notes...")
     res3 = await Runner.run(
         tutorial_writer,
         f"Draft comprehensive release documentation based on this structure:\n\n{output2}",
+        hooks=tracer,
     )
     output3 = str(res3.final_output)
     console.print(f"  [dim green]Stage 3 Output:[/dim green] [dim]{output3[:120]}...[/dim]\n")
 
     # Stage 4: Editor
+    tracer.record_packet(tutorial_writer.name, editorial_reviewer.name, "HANDOFF", "Forward draft release notes to Editor", {"stage": 3})
     print_agent_step(editorial_reviewer.name, "Stage 4: Polishing markdown and auditing publication rigor...")
     res4 = await Runner.run(
         editorial_reviewer,
         f"Perform final editorial review and polish for publication:\n\n{output3}",
+        hooks=tracer,
     )
     final_output = str(res4.final_output)
+
+    tracer.render_summary_ledger()
+    tracer.render_sequence_diagram()
 
     print_result_panel("Final Publication-Ready Release Notes", final_output)
     return final_output

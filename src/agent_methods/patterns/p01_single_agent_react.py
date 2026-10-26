@@ -63,6 +63,7 @@ from agent_methods.common import (
     print_tool_call,
     print_result_panel,
     print_explainer,
+    CommsTracer,
 )
 
 # -------------------------------------------------------------------------
@@ -189,7 +190,7 @@ def create_logistics_agent() -> Agent:
 # Runner
 # -------------------------------------------------------------------------
 
-async def run(query: str | None = None, example_id: int = 1) -> str:
+async def run(query: str | None = None, example_id: int = 1, tracer: CommsTracer | None = None) -> str:
     """Execute ReAct agent loop against real live public APIs."""
     ensure_api_key()
 
@@ -229,24 +230,15 @@ async def run(query: str | None = None, example_id: int = 1) -> str:
 
     console.print(f"[bold cyan]User Query:[/bold cyan] {user_prompt}\n")
 
-    print_agent_step(agent.name, "Querying real public API tools in ReAct loop...")
-    result = await Runner.run(agent, user_prompt)
+    if tracer is None:
+        tracer = CommsTracer(scenario_title="Pattern 01: Single Agent ReAct")
+    tracer.record_user_query(user_prompt, agent.name)
 
-    # Trace execution items
-    for item in result.new_items:
-        item_type = getattr(item, "type", type(item).__name__)
-        if item_type == "tool_call_item":
-            raw = getattr(item, "raw_item", None)
-            name = getattr(raw, "name", "tool")
-            args = getattr(raw, "arguments", "{}")
-            try:
-                parsed_args = json.loads(args) if isinstance(args, str) else args
-            except Exception:
-                parsed_args = {"raw": args}
-            print_tool_call(name, parsed_args)
-        elif item_type == "tool_call_output_item":
-            output = str(getattr(item, "output", ""))
-            console.print(f"      [dim green]↳ Real API Response:[/dim green] [dim]{output[:140]}...[/dim]")
+    print_agent_step(agent.name, "Querying real public API tools in ReAct loop...")
+    result = await Runner.run(agent, user_prompt, hooks=tracer)
+
+    tracer.render_summary_ledger()
+    tracer.render_sequence_diagram()
 
     print_result_panel(f"Live Grounded Output ({agent.name})", str(result.final_output))
     return str(result.final_output)

@@ -84,6 +84,7 @@ from agent_methods.common import (
     print_tool_call,
     print_result_panel,
     print_explainer,
+    CommsTracer,
 )
 
 # -------------------------------------------------------------------------
@@ -196,7 +197,7 @@ evaluator_agent = Agent(
 # Runner Loop
 # -------------------------------------------------------------------------
 
-async def run(query: str | None = None, example_id: int = 1) -> str:
+async def run(query: str | None = None, example_id: int = 1, tracer: CommsTracer | None = None) -> str:
     """Execute Evaluator-Optimizer loop backed by real sandbox execution."""
     ensure_api_key()
 
@@ -251,13 +252,17 @@ async def run(query: str | None = None, example_id: int = 1) -> str:
 
     console.print(f"[bold cyan]Task Specification:[/bold cyan] {objective}\n")
 
+    if tracer is None:
+        tracer = CommsTracer(scenario_title="Pattern 07: Evaluator-Optimizer")
+    tracer.record_user_query(objective, generator_agent.name)
+
     current_code = ""
     for turn in range(1, max_turns + 1):
         console.print(f"[bold yellow]═══════ Iteration Turn {turn} / {max_turns} ═══════[/bold yellow]")
 
         # 1. Generator writes / refines code
         print_agent_step(generator_agent.name, f"Generating implementation candidate (Turn {turn})...")
-        gen_res = await Runner.run(generator_agent, current_prompt)
+        gen_res = await Runner.run(generator_agent, current_prompt, hooks=tracer)
         current_code = str(gen_res.final_output)
 
         console.print("[dim]Generated Code Candidate preview:[/dim]")
@@ -267,13 +272,14 @@ async def run(query: str | None = None, example_id: int = 1) -> str:
             console.print("  [dim]... [truncated][/dim]")
 
         # 2. Evaluator audits candidate using real sandbox
+        tracer.record_packet(generator_agent.name, evaluator_agent.name, "HANDOFF", f"Submit code candidate (Turn {turn}) to Senior Code Reviewer", {"turn": turn})
         print_agent_step(evaluator_agent.name, "Running real sandbox test suite & evaluating...")
         eval_prompt = (
             f"Candidate Code:\n{current_code}\n\n"
             f"Test Assertions to verify in sandbox:\n{test_harness}\n\n"
             f"Run the sandbox test and output your EvaluationReport JSON."
         )
-        eval_res = await Runner.run(evaluator_agent, eval_prompt)
+        eval_res = await Runner.run(evaluator_agent, eval_prompt, hooks=tracer)
         eval_output = str(eval_res.final_output)
 
         # Parse evaluation JSON
@@ -298,12 +304,14 @@ async def run(query: str | None = None, example_id: int = 1) -> str:
         console.print(f"  [bold]Evaluator Score:[/bold] [cyan]{score}/100[/cyan] | Passed: [cyan]{passed}[/cyan]")
 
         if passed or score >= 85:
+            tracer.record_packet(evaluator_agent.name, "System", "AGENT_END", f"Convergence reached: Score {score}/100, Passed: {passed}", {"score": score})
             console.print(f"\n[bold green]✓ Solution converged at Turn {turn} with score {score}/100![/bold green]\n")
             break
 
         # Prepare critique for next turn
         weaknesses = "\n- ".join(eval_data.get("weaknesses", []))
         suggestions = "\n- ".join(eval_data.get("suggested_improvements", []))
+        tracer.record_packet(evaluator_agent.name, generator_agent.name, "HANDOFF", f"Feedback rejection (Score {score}/100) fed back to Generator", {"score": score, "turn": turn})
         current_prompt = (
             f"Your previous implementation scored {score}/100 and had the following flaws:\n\n"
             f"Weaknesses / Test Failures:\n- {weaknesses}\n\n"
@@ -311,6 +319,9 @@ async def run(query: str | None = None, example_id: int = 1) -> str:
             f"Previous code:\n{current_code}\n\n"
             f"Please fix all issues and return the corrected Python implementation."
         )
+
+    tracer.render_summary_ledger()
+    tracer.render_sequence_diagram()
 
     print_result_panel("Final Optimized Code Artifact", current_code)
     return current_code

@@ -449,6 +449,368 @@
       filter: drop-shadow(0 0 6px #06b6d4);
       animation: float 2.5s infinite linear;
     }
+
+    /* Live Status Pill */
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.3rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      font-family: 'Fira Code', monospace;
+      border: 1px solid var(--surface-border);
+      background: #0f172a;
+      color: #94a3b8;
+      transition: all 0.2s ease;
+    }
+    .status-pill .status-dot {
+      width: 8px; height: 8px; border-radius: 50%; background: #64748b;
+      display: inline-block;
+    }
+    .status-pill.running {
+      border-color: #38bdf8;
+      background: rgba(56, 189, 248, 0.12);
+      color: #38bdf8;
+      box-shadow: 0 0 14px rgba(56, 189, 248, 0.3);
+    }
+    .status-pill.running .status-dot {
+      background: #38bdf8;
+      box-shadow: 0 0 8px #38bdf8;
+      animation: pulse 0.8s infinite alternate;
+    }
+    .status-pill.done {
+      border-color: #10b981;
+      background: rgba(16, 185, 129, 0.12);
+      color: #34d399;
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.25);
+    }
+    .status-pill.done .status-dot {
+      background: #10b981;
+      box-shadow: 0 0 6px #10b981;
+    }
+    .status-pill.error {
+      border-color: #ef4444;
+      background: rgba(239, 68, 68, 0.12);
+      color: #f87171;
+    }
+    .status-pill.error .status-dot {
+      background: #ef4444;
+      box-shadow: 0 0 6px #ef4444;
+    }
+
+    /* Live Action Buttons */
+    .live-run-btn {
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
+      color: #ffffff;
+      border: 1px solid #6366f1;
+      padding: 0.45rem 1rem;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+    }
+    .live-run-btn:hover {
+      background: linear-gradient(135deg, #4338ca, #6d28d9);
+      box-shadow: 0 0 16px rgba(124, 58, 237, 0.5);
+      transform: translateY(-1px);
+    }
+    .live-run-btn:active {
+      transform: translateY(0);
+    }
+    .live-run-btn.secondary {
+      background: #1e293b;
+      border-color: #334155;
+      color: #e2e8f0;
+      box-shadow: none;
+    }
+    .live-run-btn.secondary:hover {
+      background: #334155;
+      border-color: #475569;
+    }
+    .live-run-btn.scenario-btn {
+      width: 100%;
+      margin-top: 0.85rem;
+      justify-content: center;
+      padding: 0.55rem 1rem;
+      font-size: 0.85rem;
+      background: linear-gradient(135deg, #059669, #0d9488);
+      border-color: #10b981;
+      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+    }
+    .live-run-btn.scenario-btn:hover {
+      background: linear-gradient(135deg, #047857, #0f766e);
+      box-shadow: 0 0 16px rgba(16, 185, 129, 0.5);
+    }
+
+    /* Custom Query Box */
+    .custom-query-box {
+      margin-top: 0.85rem;
+      background: #080d1a;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 0.85rem 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .custom-query-label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #94a3b8;
+    }
+    .custom-query-row {
+      display: flex;
+      gap: 0.65rem;
+    }
+    .custom-query-row input {
+      flex: 1;
+      background: #0f172a;
+      border: 1px solid #334155;
+      color: #f8fafc;
+      padding: 0.45rem 0.85rem;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .custom-query-row input:focus {
+      border-color: #6366f1;
+      box-shadow: 0 0 8px rgba(99, 102, 241, 0.3);
+    }
+
+    /* Execution Console Card */
+    .console-card {
+      background: #070b14;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    }
+    .console-header {
+      background: #0c1222;
+      border-bottom: 1px solid #1e293b;
+      padding: 0.85rem 1.25rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+    .console-title-area {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+      flex-wrap: wrap;
+    }
+    .console-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #f1f5f9;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .live-metrics-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .metric-pill {
+      font-size: 0.75rem;
+      font-family: 'Fira Code', monospace;
+      background: #111827;
+      border: 1px solid #1f2937;
+      padding: 0.2rem 0.55rem;
+      border-radius: 6px;
+      color: #94a3b8;
+    }
+    .metric-pill strong {
+      color: #f8fafc;
+    }
+    .console-tabs {
+      display: flex;
+      gap: 0.25rem;
+      background: #060911;
+      padding: 0.2rem;
+      border-radius: 8px;
+      border: 1px solid #1e293b;
+    }
+    .console-tab {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      padding: 0.35rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      font-family: inherit;
+    }
+    .console-tab:hover {
+      color: #f1f5f9;
+    }
+    .console-tab.active {
+      background: #1e293b;
+      color: #38bdf8;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+    }
+    .console-body {
+      min-height: 280px;
+      max-height: 520px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+    .console-view {
+      display: none;
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem 1.25rem;
+    }
+    .console-view.active {
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Wire Feed */
+    .wire-feed {
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+      font-family: 'Fira Code', monospace;
+    }
+    .feed-empty-state {
+      padding: 2.5rem 1rem;
+      text-align: center;
+      color: #64748b;
+      font-size: 0.85rem;
+      line-height: 1.6;
+    }
+    .wire-packet-row {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid #1e293b;
+      border-radius: 6px;
+      padding: 0.5rem 0.85rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .wire-packet-row:hover {
+      background: rgba(30, 41, 59, 0.7);
+      border-color: #334155;
+    }
+    .wire-packet-main {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      font-size: 0.82rem;
+    }
+    .packet-badge {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
+      letter-spacing: 0.02em;
+    }
+    .packet-route {
+      color: #f1f5f9;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    .packet-summary {
+      color: #94a3b8;
+      font-size: 0.78rem;
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .packet-time {
+      color: #64748b;
+      font-size: 0.72rem;
+      min-width: 50px;
+      text-align: right;
+    }
+    .packet-payload-drawer {
+      display: none;
+      margin-top: 0.4rem;
+      padding: 0.6rem 0.85rem;
+      background: #050811;
+      border: 1px solid #1a2234;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      color: #cbd5e1;
+      white-space: pre-wrap;
+      word-break: break-all;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    /* Markdown Body */
+    .markdown-body {
+      color: #e2e8f0;
+      font-size: 0.9rem;
+      line-height: 1.65;
+    }
+    .markdown-body h1, .markdown-body h2, .markdown-body h3 {
+      color: #f8fafc;
+      margin-top: 1rem;
+      margin-bottom: 0.5rem;
+    }
+    .markdown-body h1 { font-size: 1.25rem; }
+    .markdown-body h2 { font-size: 1.1rem; }
+    .markdown-body h3 { font-size: 0.95rem; }
+    .markdown-body pre {
+      background: #040711;
+      border: 1px solid #1e293b;
+      padding: 0.85rem;
+      border-radius: 6px;
+      overflow-x: auto;
+      margin: 0.75rem 0;
+    }
+    .markdown-body code {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.82rem;
+      background: rgba(255,255,255,0.06);
+      padding: 0.1rem 0.35rem;
+      border-radius: 4px;
+    }
+    .markdown-body ul, .markdown-body ol {
+      padding-left: 1.4rem;
+      margin: 0.5rem 0;
+    }
+    .markdown-body li {
+      margin-bottom: 0.25rem;
+    }
+
+    /* Sequence Diagram View */
+    .sequence-pre, .json-pre {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.8rem;
+      color: #38bdf8;
+      background: #040711;
+      padding: 1rem;
+      border-radius: 6px;
+      overflow-x: auto;
+      line-height: 1.5;
+    }
   </style>
 </head>
 <body>
@@ -582,11 +944,19 @@
       <div class="canvas-card">
         <div class="canvas-header">
           <div class="canvas-title">
-            <span>🌐 Interactive Topology & Message Routing Map</span>
+            <span>🌐 Interactive Topology & Real-Time Communication Map</span>
           </div>
           <div class="playback-controls">
-            <button class="ctrl-btn primary" onclick="pulseAnimation()">Simulate Message Flow</button>
-            <button class="ctrl-btn" onclick="resetAnimation()">Reset</button>
+            <button class="live-run-btn" id="btn-top-run-1" onclick="runScenarioLive(1)">
+              <span class="btn-icon">▶</span> Run Scenario 1 Live
+            </button>
+            <button class="live-run-btn secondary" id="btn-top-run-2" onclick="runScenarioLive(2)">
+              <span class="btn-icon">▶</span> Run Scenario 2 Live
+            </button>
+            <div id="live-status-pill" class="status-pill idle">
+              <span class="status-dot"></span>
+              <span id="status-pill-text">Ready to Execute</span>
+            </div>
           </div>
         </div>
         <div class="graph-viewport" id="viewport">
@@ -594,16 +964,74 @@
         </div>
       </div>
 
-      
       <!-- Real-World APIs & Production Scenarios -->
       <div class="scenarios-card">
         <div class="canvas-header">
           <div class="canvas-title">
-            <span>⚡ Live Real Public APIs & Production Scenarios</span>
+            <span>⚡ Dual Production Scenarios (Real Public APIs)</span>
           </div>
           <div id="p-apis" style="display: flex; gap: 0.5rem; flex-wrap: wrap;"></div>
         </div>
         <div id="p-scenarios" class="scenario-grid"></div>
+
+        <!-- Custom Prompt Execution Input Drawer -->
+        <div class="custom-query-box">
+          <div class="custom-query-label">💬 Or test a custom query against this live multi-agent architecture:</div>
+          <div class="custom-query-row">
+            <input type="text" id="custom-query-input" placeholder="Enter custom prompt... (e.g. 'Investigate Astral uv repository and summarize open issues')" onkeydown="if(event.key==='Enter') runCustomScenario()" />
+            <button class="live-run-btn" onclick="runCustomScenario()">▶ Run Custom Query</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Inter-Agent Communications & Execution Console -->
+      <div class="console-card" id="execution-console">
+        <div class="console-header">
+          <div class="console-title-area">
+            <span class="console-title">📡 Live Inter-Agent Communication Ledger & Wire Trace</span>
+            <div class="live-metrics-bar">
+              <span class="metric-pill">⏱ <strong id="timer-val">0.0s</strong></span>
+              <span class="metric-pill">📦 <strong id="packets-count">0</strong> Packets</span>
+              <span class="metric-pill">⚡ Active: <strong id="active-agent-val" style="color: #38bdf8;">Idle</strong></span>
+            </div>
+          </div>
+          <div class="console-tabs">
+            <button class="console-tab active" id="tab-btn-wire" onclick="switchConsoleTab('wire')">⚡ Live Wire Packets</button>
+            <button class="console-tab" id="tab-btn-result" onclick="switchConsoleTab('result')">💬 Synthesized Result</button>
+            <button class="console-tab" id="tab-btn-sequence" onclick="switchConsoleTab('sequence')">📊 Sequence Diagram</button>
+            <button class="console-tab" id="tab-btn-json" onclick="switchConsoleTab('json')">🔍 Raw JSON Ledger</button>
+          </div>
+        </div>
+
+        <div class="console-body">
+          <!-- Tab 1: Wire Packets -->
+          <div id="view-wire" class="console-view active">
+            <div id="wire-packets-feed" class="wire-feed">
+              <div class="feed-empty-state">
+                <span>Select a scenario above and click <strong>▶ Run Scenario Live</strong> to trigger execution against DeepSeek and capture real-time inter-agent packets.</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab 2: Synthesized Result -->
+          <div id="view-result" class="console-view">
+            <div id="result-view-content" class="markdown-body">
+              <div class="feed-empty-state">
+                <span>No execution yet. Run a scenario to see the grounded report synthesized by the agents.</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab 3: Sequence Diagram -->
+          <div id="view-sequence" class="console-view">
+            <pre id="sequence-diagram-content" class="sequence-pre">No communication hops captured yet.</pre>
+          </div>
+
+          <!-- Tab 4: Raw JSON Ledger -->
+          <div id="view-json" class="console-view">
+            <pre id="raw-json-content" class="json-pre">[]</pre>
+          </div>
+        </div>
       </div>
 
       <!-- Detailed Breakdown Grid -->
@@ -1474,45 +1902,408 @@ board.verified_facts.append(threat_res.final_output)`,
       ]
     };
 
-    function renderWireTrace(id) {
+    // Interactive Execution & Wire Tracer State
+    let currentPatternId = "1";
+    let activeAbortController = null;
+    let currentPackets = [];
+    let executionStartTime = null;
+    let timerInterval = null;
+
+    function switchConsoleTab(tabName) {
+      document.querySelectorAll('.console-tab').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.console-view').forEach(v => v.classList.remove('active'));
+
+      const btn = document.getElementById(`tab-btn-${tabName}`);
+      const view = document.getElementById(`view-${tabName}`);
+      if (btn) btn.classList.add('active');
+      if (view) view.classList.add('active');
+    }
+
+    function highlightSvgNode(entityName, type) {
+      if (!entityName) return;
+      const viewport = document.getElementById('viewport');
+      if (!viewport) return;
+
+      const cleanTarget = entityName.replace("Tool:", "").toLowerCase().trim();
+      const texts = viewport.querySelectorAll('text');
+
+      texts.forEach(t => {
+        const txt = t.textContent.toLowerCase().trim();
+        if (txt && (cleanTarget.includes(txt) || txt.includes(cleanTarget) || (txt.includes('agent') && cleanTarget.includes('agent')))) {
+          const parent = t.closest('g') || t.parentElement;
+          const circle = parent?.querySelector('circle') || t.previousElementSibling;
+          if (circle && circle.tagName === 'circle') {
+            const isTool = type === 'TOOL_CALL' || type === 'TOOL_RESULT' || entityName.startsWith('Tool:');
+            const glowColor = isTool ? '#22d3ee' : '#a855f7';
+            circle.style.transition = 'all 0.3s ease';
+            circle.style.filter = `drop-shadow(0 0 16px ${glowColor})`;
+            circle.style.stroke = glowColor;
+            circle.style.strokeWidth = '4px';
+
+            setTimeout(() => {
+              circle.style.filter = '';
+              circle.style.stroke = '';
+              circle.style.strokeWidth = '';
+            }, 2000);
+          }
+        }
+      });
+    }
+
+    function addPacketRow(p) {
       const feed = document.getElementById('wire-packets-feed');
       if (!feed) return;
-      const packets = TRACES[id] || [
-        { seq: "01", time: "0.00s", type: "QUERY", from: "User", to: "Coordinator", summary: "User dispatches high-level request" },
-        { seq: "02", time: "1.20s", type: "COMMS", from: "Coordinator", to: "Specialist", summary: "Inter-agent message or tool invocation dispatched" },
-        { seq: "03", time: "2.40s", type: "OBSERVATION", from: "Specialist", to: "Coordinator", summary: "Live external API data returned and verified" },
-        { seq: "04", time: "3.80s", type: "FINAL", from: "Coordinator", to: "User", summary: "Grounded final response delivered" }
-      ];
+
+      // Remove empty state placeholder if present
+      const empty = feed.querySelector('.feed-empty-state');
+      if (empty) empty.remove();
 
       const typeColors = {
-        "QUERY": "#38bdf8",
-        "HANDOFF": "#fbbf24",
-        "SUBAGENT_CALL": "#c084fc",
-        "SUBAGENT_RETURN": "#a855f7",
-        "TOOL_CALL": "#ec4899",
-        "TOOL_RESULT": "#34d399",
-        "FINAL": "#10b981",
-        "CRITIQUE": "#f43f5e",
-        "CANDIDATE": "#60a5fa"
+        "QUERY": { color: "#38bdf8", bg: "rgba(56, 189, 248, 0.15)" },
+        "AGENT_START": { color: "#818cf8", bg: "rgba(129, 140, 248, 0.15)" },
+        "HANDOFF": { color: "#fbbf24", bg: "rgba(251, 191, 36, 0.15)" },
+        "SUBAGENT_CALL": { color: "#c084fc", bg: "rgba(192, 132, 252, 0.15)" },
+        "SUBAGENT_RETURN": { color: "#a855f7", bg: "rgba(168, 85, 247, 0.15)" },
+        "TOOL_CALL": { color: "#ec4899", bg: "rgba(236, 72, 153, 0.15)" },
+        "TOOL_RESULT": { color: "#10b981", bg: "rgba(16, 185, 129, 0.15)" },
+        "AGENT_END": { color: "#f8fafc", bg: "rgba(248, 250, 252, 0.12)" },
+        "FINAL_OUTPUT": { color: "#34d399", bg: "rgba(52, 211, 153, 0.2)" },
+        "DONE": { color: "#10b981", bg: "rgba(16, 185, 129, 0.25)" }
       };
 
-      feed.innerHTML = packets.map(p => {
-        const color = typeColors[p.type] || "#94a3b8";
-        return `
-          <div class="wire-packet-row" style="background: rgba(30, 41, 59, 0.4); border-left: 3px solid ${color}; padding: 0.35rem 0.65rem; border-radius: 4px; display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
-            <div style="display: flex; align-items: center; gap: 0.6rem;">
-              <span style="color: #64748b; font-size: 0.7rem;">#${p.seq}</span>
-              <span style="color: ${color}; font-weight: 700; font-size: 0.72rem; background: rgba(255,255,255,0.06); padding: 0.1rem 0.35rem; border-radius: 3px;">${p.type}</span>
-              <span style="color: #e2e8f0; font-weight: 600;">${p.from} <span style="color:#64748b;">➔</span> ${p.to}</span>
-            </div>
-            <div style="color: #94a3b8; font-size: 0.75rem; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 380px;">${p.summary}</div>
-            <div style="color: #64748b; font-size: 0.7rem; min-width: 45px; text-align: right;">+${p.time}</div>
+      const style = typeColors[p.packet_type] || { color: "#94a3b8", bg: "rgba(148, 163, 184, 0.1)" };
+      const rowId = `packet-row-${p.seq}`;
+
+      const row = document.createElement('div');
+      row.className = 'wire-packet-row';
+      row.id = rowId;
+      row.style.borderLeft = `3px solid ${style.color}`;
+
+      let payloadHtml = '';
+      if (p.payload) {
+        const payloadStr = typeof p.payload === 'object' ? JSON.stringify(p.payload, null, 2) : String(p.payload);
+        payloadHtml = `
+          <div class="packet-payload-drawer" id="drawer-${p.seq}">
+            <div style="font-weight:700; color:${style.color}; margin-bottom:0.25rem;">📦 Wire Payload:</div>
+            ${escapeHtml(payloadStr)}
           </div>
         `;
-      }).join('');
+      }
+
+      row.innerHTML = `
+        <div class="wire-packet-main" onclick="togglePayloadDrawer('${p.seq}')">
+          <div style="display: flex; align-items: center; gap: 0.65rem; min-width: 220px;">
+            <span style="color: #64748b; font-size: 0.72rem; min-width: 28px;">#${String(p.seq).padStart(2, '0')}</span>
+            <span class="packet-badge" style="color: ${style.color}; background: ${style.bg};">${p.packet_type}</span>
+            <span class="packet-route">${escapeHtml(p.source || 'Unknown')} <span style="color:#64748b; font-size: 0.75rem;">➔</span> ${escapeHtml(p.target || 'Floor')}</span>
+          </div>
+          <div class="packet-summary" title="${escapeHtml(p.summary || '')}">${escapeHtml(p.summary || '')}</div>
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span class="packet-time">+${Number(p.timestamp_offset || 0).toFixed(2)}s</span>
+            ${p.payload ? '<span style="font-size: 0.7rem; color: #64748b; cursor: pointer;">🔍</span>' : ''}
+          </div>
+        </div>
+        ${payloadHtml}
+      `;
+
+      feed.appendChild(row);
+      feed.scrollTop = feed.scrollHeight;
+    }
+
+    function togglePayloadDrawer(seq) {
+      const drawer = document.getElementById(`drawer-${seq}`);
+      if (!drawer) return;
+      drawer.style.display = drawer.style.display === 'block' ? 'none' : 'block';
+    }
+
+    function generateAsciiSequence(packets) {
+      if (!packets || packets.length === 0) return "No events captured yet.";
+      const participants = ["User"];
+      packets.forEach(p => {
+        [p.source, p.target].forEach(ent => {
+          if (!ent) return;
+          const clean = ent.replace("Tool:", "").trim();
+          if (clean && clean !== "System / Orchestrator" && clean !== "Conversation Floor" && !participants.includes(clean)) {
+            participants.push(clean);
+          }
+        });
+      });
+      if (participants.length < 2) return "Awaiting communication events across multiple agents/tools...";
+
+      const colWidth = 20;
+      let out = "";
+      out += participants.map(p => `[${p.slice(0, colWidth - 2).padEnd(colWidth - 2)}]`).join("  ") + "\n";
+      out += participants.map(() => "─".repeat(colWidth)).join("  ") + "\n";
+
+      packets.forEach(p => {
+        const src = (p.source || "").replace("Tool:", "").trim();
+        const tgt = (p.target || "").replace("Tool:", "").trim();
+        const sIdx = participants.indexOf(src);
+        const tIdx = participants.indexOf(tgt);
+        if (sIdx === -1 || tIdx === -1 || sIdx === tIdx) return;
+
+        let line = new Array(participants.length * (colWidth + 2)).fill(" ");
+        participants.forEach((_, i) => {
+          const colPos = i * (colWidth + 2) + Math.floor(colWidth / 2);
+          if (colPos < line.length) line[colPos] = "│";
+        });
+
+        const left = Math.min(sIdx, tIdx);
+        const right = Math.max(sIdx, tIdx);
+        const startPos = left * (colWidth + 2) + Math.floor(colWidth / 2);
+        const endPos = right * (colWidth + 2) + Math.floor(colWidth / 2);
+
+        for (let pos = startPos; pos <= endPos; pos++) {
+          if (pos < line.length) line[pos] = "─";
+        }
+        if (sIdx < tIdx && endPos < line.length) {
+          line[endPos] = "▶";
+        } else if (startPos < line.length) {
+          line[startPos] = "◀";
+        }
+
+        out += line.join("") + `  (#${String(p.seq).padStart(2, '0')}) ${p.packet_type}: ${p.summary.slice(0, 45)}\n`;
+      });
+
+      return out;
+    }
+
+    function formatMarkdown(text) {
+      if (!text) return '<p>No content produced.</p>';
+      let html = escapeHtml(text);
+
+      // Code blocks
+      html = html.replace(/```([a-zA-Z0-9]*)\n([\s\S]*?)```/g, (_, lang, code) => {
+        return `<pre><code class="language-${lang}">${code}</code></pre>`;
+      });
+
+      // Inline code
+      html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+      // Headings
+      html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+      html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+      html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+
+      // Bold & italics
+      html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+      html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+
+      // Lists
+      html = html.replace(/^\s*[-•]\s+(.*$)/gim, '<li>$1</li>');
+      html = html.replace(/(<li>.*<\/li>)/gims, '<ul>$1</ul>');
+
+      // Line breaks
+      html = html.replace(/\n\n/g, '<br/><br/>');
+
+      return html;
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    // Trigger Scenario Execution via SSE
+    async function executeAgent(patternKey, exampleId, customQuery = null) {
+      if (activeAbortController) {
+        activeAbortController.abort();
+      }
+      activeAbortController = new AbortController();
+
+      currentPackets = [];
+      const statusPill = document.getElementById('live-status-pill');
+      const statusText = document.getElementById('status-pill-text');
+      const packetsCount = document.getElementById('packets-count');
+      const activeAgentVal = document.getElementById('active-agent-val');
+      const timerVal = document.getElementById('timer-val');
+      const feed = document.getElementById('wire-packets-feed');
+      const resultView = document.getElementById('result-view-content');
+      const seqView = document.getElementById('sequence-diagram-content');
+      const jsonView = document.getElementById('raw-json-content');
+
+      // Reset views
+      statusPill.className = 'status-pill running';
+      statusText.innerText = '⚡ Running against DeepSeek (deepseek-chat)...';
+      packetsCount.innerText = '0';
+      activeAgentVal.innerText = 'Initializing...';
+      timerVal.innerText = '0.0s';
+      feed.innerHTML = '';
+      resultView.innerHTML = `
+        <div style="padding: 2.5rem 1rem; text-align: center; color: #94a3b8;">
+          <div class="pulse-dot" style="margin: 0 auto 1rem; width: 12px; height: 12px; background: #38bdf8; box-shadow: 0 0 12px #38bdf8;"></div>
+          <div>Agent synthesizing live grounded report from real public API feeds...</div>
+        </div>
+      `;
+      seqView.innerText = 'Building live sequence waterfall as packets arrive...';
+      jsonView.innerText = '[]';
+
+      // Switch to live wire tab
+      switchConsoleTab('wire');
+
+      // Start elapsed timer
+      executionStartTime = performance.now();
+      clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        const elapsed = ((performance.now() - executionStartTime) / 1000).toFixed(1);
+        timerVal.innerText = `${elapsed}s`;
+      }, 100);
+
+      // Add query ingestion packet
+      const pInfo = DATA[patternKey] || DATA["1"];
+      const scenarioObj = (pInfo.scenarios || [])[exampleId - 1] || {};
+      const queryText = customQuery || scenarioObj.title || "Execute scenario against real APIs";
+
+      addPacketRow({
+        seq: 1,
+        timestamp_offset: 0.0,
+        source: "User",
+        target: "Orchestrator",
+        packet_type: "QUERY",
+        summary: `User dispatches scenario #${exampleId}: ${scenarioObj.title || 'Custom Query'}`,
+        payload: { pattern: patternKey, example_id: exampleId, query: queryText }
+      });
+      currentPackets.push({
+        seq: 1,
+        timestamp_offset: 0.0,
+        source: "User",
+        target: "Orchestrator",
+        packet_type: "QUERY",
+        summary: `User dispatches scenario #${exampleId}`,
+        payload: queryText
+      });
+
+      try {
+        const response = await fetch('/api/run', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            pattern_id: patternKey,
+            example_id: exampleId,
+            custom_query: customQuery
+          }),
+          signal: activeAbortController.signal
+        });
+
+        if (!response.ok) {
+          throw new Error(`Server returned status ${response.status}: ${await response.text()}`);
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const blocks = buffer.split('\n\n');
+          buffer = blocks.pop() || '';
+
+          for (const block of blocks) {
+            if (!block.trim()) continue;
+            let event = 'message';
+            let data = '';
+
+            for (const line of block.split('\n')) {
+              if (line.startsWith('event: ')) event = line.slice(7).trim();
+              if (line.startsWith('data: ')) data = line.slice(6).trim();
+            }
+
+            if (!data) continue;
+            try {
+              const parsed = JSON.parse(data);
+
+              if (event === 'connected') {
+                statusText.innerText = `⚡ Connected to DeepSeek • Executing ${parsed.pattern || ''}...`;
+              } else if (event === 'packet') {
+                currentPackets.push(parsed);
+                addPacketRow(parsed);
+                packetsCount.innerText = String(currentPackets.length);
+                activeAgentVal.innerText = parsed.target || parsed.source || 'Active';
+                highlightSvgNode(parsed.target || parsed.source, parsed.packet_type);
+                seqView.innerText = generateAsciiSequence(currentPackets);
+                jsonView.innerText = JSON.stringify(currentPackets, null, 2);
+              } else if (event === 'done') {
+                clearInterval(timerInterval);
+                const totalElapsed = ((performance.now() - executionStartTime) / 1000).toFixed(2);
+                timerVal.innerText = `${totalElapsed}s`;
+                statusPill.className = 'status-pill done';
+                statusText.innerText = `✓ Execution Complete in ${totalElapsed}s (${currentPackets.length} Packets)`;
+                activeAgentVal.innerText = 'Completed';
+
+                addPacketRow({
+                  seq: currentPackets.length + 1,
+                  timestamp_offset: Number(totalElapsed),
+                  source: "DeepSeek / Agent",
+                  target: "User",
+                  packet_type: "DONE",
+                  summary: `Final synthesis converged and delivered to user (${totalElapsed}s)`,
+                  payload: parsed
+                });
+
+                resultView.innerHTML = formatMarkdown(parsed.final_output);
+                // Flash result tab
+                const resTabBtn = document.getElementById('tab-btn-result');
+                if (resTabBtn) {
+                  resTabBtn.style.color = '#34d399';
+                  resTabBtn.innerText = '💬 Synthesized Result (Ready!)';
+                }
+                break;
+              } else if (event === 'error') {
+                clearInterval(timerInterval);
+                statusPill.className = 'status-pill error';
+                statusText.innerText = `✕ Error: ${parsed.error || 'Execution failed'}`;
+                addPacketRow({
+                  seq: currentPackets.length + 1,
+                  timestamp_offset: ((performance.now() - executionStartTime) / 1000).toFixed(2),
+                  source: "Server",
+                  target: "User",
+                  packet_type: "DONE",
+                  summary: `Execution Error: ${parsed.error || 'Check server logs'}`,
+                  payload: parsed
+                });
+                break;
+              }
+            } catch (err) {
+              console.error('Error handling SSE packet:', err, data);
+            }
+          }
+        }
+      } catch (err) {
+        if (err.name === 'AbortError') {
+          statusText.innerText = '⏹ Execution cancelled by user';
+        } else {
+          clearInterval(timerInterval);
+          statusPill.className = 'status-pill error';
+          statusText.innerText = `✕ Connection Error: ${err.message}`;
+          console.error('Fetch execution error:', err);
+        }
+      }
+    }
+
+    function runScenarioLive(exampleId) {
+      executeAgent(currentPatternId, exampleId, null);
+    }
+
+    function runCustomScenario() {
+      const input = document.getElementById('custom-query-input');
+      const val = input ? input.value.trim() : '';
+      if (!val) {
+        alert('Please enter a query in the custom prompt field.');
+        return;
+      }
+      executeAgent(currentPatternId, 1, val);
     }
 
     function selectPattern(id) {
+      currentPatternId = id;
       document.querySelectorAll('.pattern-btn').forEach(b => b.classList.remove('active'));
       event?.currentTarget?.classList.add('active');
 
@@ -1527,20 +2318,30 @@ board.verified_facts.append(threat_res.final_output)`,
       document.getElementById('m-context').innerText = p.context;
       document.getElementById('m-blast').innerText = p.blast;
 
-      
+      // Update top canvas buttons with scenario labels
+      const sc1 = (p.scenarios || [])[0];
+      const sc2 = (p.scenarios || [])[1];
+      const topBtn1 = document.getElementById('btn-top-run-1');
+      const topBtn2 = document.getElementById('btn-top-run-2');
+      if (topBtn1 && sc1) topBtn1.innerHTML = `<span class="btn-icon">▶</span> Run Scenario 1: ${escapeHtml(sc1.title.slice(0, 24))}...`;
+      if (topBtn2 && sc2) topBtn2.innerHTML = `<span class="btn-icon">▶</span> Run Scenario 2: ${escapeHtml(sc2.title.slice(0, 24))}...`;
+
       // Render real API badges
       const apisContainer = document.getElementById('p-apis');
       if (apisContainer) {
         apisContainer.innerHTML = (p.apis || []).map(api => `<span class="api-badge">⚡ ${api}</span>`).join('');
       }
 
-      // Render dual real-world scenarios
+      // Render dual real-world scenarios with live action buttons
       const scenariosContainer = document.getElementById('p-scenarios');
       if (scenariosContainer) {
         scenariosContainer.innerHTML = (p.scenarios || []).map((sc, i) => `
           <div class="scenario-item">
-            <div class="scenario-title"><span>📌 Scenario ${i+1}:</span> ${sc.title}</div>
-            <div class="scenario-desc">${sc.desc}</div>
+            <div class="scenario-title"><span>📌 Scenario ${i+1}:</span> ${escapeHtml(sc.title)}</div>
+            <div class="scenario-desc">${escapeHtml(sc.desc)}</div>
+            <button class="live-run-btn scenario-btn" onclick="runScenarioLive(${i+1})">
+              <span>▶ Run Scenario ${i+1} Live</span>
+            </button>
           </div>
         `).join('');
       }
@@ -1548,20 +2349,33 @@ board.verified_facts.append(threat_res.final_output)`,
       document.getElementById('p-mechanisms').innerHTML = p.mechanisms;
       document.getElementById('p-code').innerText = p.code;
       document.getElementById('viewport').innerHTML = p.svg;
-      renderWireTrace(id);
-    }
 
-    function pulseAnimation() {
-      const svg = document.querySelector('.topology-svg');
-      if (svg) {
-        svg.style.transition = 'transform 0.3s ease';
-        svg.style.transform = 'scale(1.02)';
-        setTimeout(() => { svg.style.transform = 'scale(1)'; }, 300);
+      // Reset Live Console
+      const statusPill = document.getElementById('live-status-pill');
+      if (statusPill) {
+        statusPill.className = 'status-pill idle';
+        document.getElementById('status-pill-text').innerText = 'Ready to Execute';
       }
-    }
-
-    function resetAnimation() {
-      selectPattern('1');
+      document.getElementById('packets-count').innerText = '0';
+      document.getElementById('timer-val').innerText = '0.0s';
+      document.getElementById('active-agent-val').innerText = 'Idle';
+      document.getElementById('wire-packets-feed').innerHTML = `
+        <div class="feed-empty-state">
+          <span>Selected <strong>${escapeHtml(p.title)}</strong>. Click <strong>▶ Run Scenario 1 Live</strong> or <strong>▶ Run Scenario 2 Live</strong> above to execute live against DeepSeek and capture wire communication packets.</span>
+        </div>
+      `;
+      document.getElementById('result-view-content').innerHTML = `
+        <div class="feed-empty-state">
+          <span>No execution yet for ${escapeHtml(p.title)}. Run a scenario to see the synthesized report.</span>
+        </div>
+      `;
+      document.getElementById('sequence-diagram-content').innerText = 'No communication hops captured yet.';
+      document.getElementById('raw-json-content').innerText = '[]';
+      const resTabBtn = document.getElementById('tab-btn-result');
+      if (resTabBtn) {
+        resTabBtn.style.color = '';
+        resTabBtn.innerText = '💬 Synthesized Result';
+      }
     }
 
     // Default select pattern 1 on load

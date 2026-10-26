@@ -220,7 +220,7 @@ activity_agent.handoffs = [flight_agent, hotel_agent]
 # Runner
 # -------------------------------------------------------------------------
 
-async def run(query: str | None = None, example_id: int = 1) -> str:
+async def run(query: str | None = None, example_id: int = 1, tracer: CommsTracer | None = None) -> str:
     """Execute dynamic multi-agent peer mesh collaboration against real public APIs."""
     ensure_api_key()
 
@@ -258,7 +258,8 @@ async def run(query: str | None = None, example_id: int = 1) -> str:
 
     console.print(f"[bold cyan]User Query:[/bold cyan] {user_prompt}\n")
 
-    tracer = CommsTracer(scenario_title="Pattern 03: Peer-to-Peer Swarm")
+    if tracer is None:
+        tracer = CommsTracer(scenario_title="Pattern 03: Peer-to-Peer Swarm")
     tracer.record_user_query(user_prompt, flight_agent.name)
 
     # Start with flight_agent

@@ -47,10 +47,14 @@ async def get_patterns(request: Request) -> JSONResponse:
 
 async def run_scenario_stream(request: Request) -> Response:
     """Execute a pattern against DeepSeek and stream live inter-agent comms packets via SSE."""
-    try:
-        body = await request.json()
-    except Exception:
-        body = {}
+    body: dict[str, Any] = {}
+    if request.method == "POST":
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
+    else:
+        body = dict(request.query_params)
 
     pattern_key = str(body.get("pattern_id", "1"))
     example_id = int(body.get("example_id", 1))
@@ -147,7 +151,14 @@ async def run_scenario_stream(request: Request) -> Response:
         if not worker_task.done():
             worker_task.cancel()
 
-    return EventSourceResponse(event_generator())
+    return EventSourceResponse(
+        event_generator(),
+        headers={
+            "Cache-Control": "no-cache, no-transform",
+            "X-Accel-Buffering": "no",
+            "Access-Control-Allow-Origin": "*",
+        },
+    )
 
 
 app = Starlette(
@@ -155,7 +166,7 @@ app = Starlette(
         Route("/", get_index),
         Route("/index.html", get_index),
         Route("/api/patterns", get_patterns),
-        Route("/api/run", run_scenario_stream, methods=["POST"]),
+        Route("/api/run", run_scenario_stream, methods=["GET", "POST"]),
     ]
 )
 

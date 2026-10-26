@@ -2109,12 +2109,18 @@ board.verified_facts.append(threat_res.final_output)`,
         .replace(/'/g, '&#039;');
     }
 
+    let activeEventSource = null;
+
     // Trigger Scenario Execution via SSE
-    async function executeAgent(patternKey, exampleId, customQuery = null) {
+    function executeAgent(patternKey, exampleId, customQuery = null) {
+      if (activeEventSource) {
+        activeEventSource.close();
+        activeEventSource = null;
+      }
       if (activeAbortController) {
         activeAbortController.abort();
+        activeAbortController = null;
       }
-      activeAbortController = new AbortController();
 
       currentPackets = [];
       const statusPill = document.getElementById('live-status-pill');
@@ -2129,7 +2135,7 @@ board.verified_facts.append(threat_res.final_output)`,
 
       // Reset views
       statusPill.className = 'status-pill running';
-      statusText.innerText = '⚡ Running against DeepSeek (deepseek-chat)...';
+      statusText.innerText = '⚡ Connecting to DeepSeek (deepseek-chat)...';
       packetsCount.innerText = '0';
       activeAgentVal.innerText = 'Initializing...';
       timerVal.innerText = '0.0s';
@@ -2178,113 +2184,106 @@ board.verified_facts.append(threat_res.final_output)`,
         payload: queryText
       });
 
+      // Construct SSE URL
+      const params = new URLSearchParams({
+        pattern_id: String(patternKey),
+        example_id: String(exampleId),
+      });
+      if (customQuery) {
+        params.append('custom_query', customQuery);
+      }
+      const sseUrl = `/api/run?${params.toString()}`;
+
       try {
-        const response = await fetch('/api/run', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            pattern_id: patternKey,
-            example_id: exampleId,
-            custom_query: customQuery
-          }),
-          signal: activeAbortController.signal
+        const es = new EventSource(sseUrl);
+        activeEventSource = es;
+
+        es.addEventListener('connected', (e) => {
+          try {
+            const parsed = JSON.parse(e.data);
+            statusText.innerText = `⚡ Connected to DeepSeek • Executing ${parsed.pattern || ''}...`;
+          } catch(err) {
+            statusText.innerText = '⚡ Connected to DeepSeek...';
+          }
         });
 
-        if (!response.ok) {
-          throw new Error(`Server returned status ${response.status}: ${await response.text()}`);
-        }
-
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = '';
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          buffer += decoder.decode(value, { stream: true });
-          const blocks = buffer.split('\n\n');
-          buffer = blocks.pop() || '';
-
-          for (const block of blocks) {
-            if (!block.trim()) continue;
-            let event = 'message';
-            let data = '';
-
-            for (const line of block.split('\n')) {
-              if (line.startsWith('event: ')) event = line.slice(7).trim();
-              if (line.startsWith('data: ')) data = line.slice(6).trim();
-            }
-
-            if (!data) continue;
-            try {
-              const parsed = JSON.parse(data);
-
-              if (event === 'connected') {
-                statusText.innerText = `⚡ Connected to DeepSeek • Executing ${parsed.pattern || ''}...`;
-              } else if (event === 'packet') {
-                currentPackets.push(parsed);
-                addPacketRow(parsed);
-                packetsCount.innerText = String(currentPackets.length);
-                activeAgentVal.innerText = parsed.target || parsed.source || 'Active';
-                highlightSvgNode(parsed.target || parsed.source, parsed.packet_type);
-                seqView.innerText = generateAsciiSequence(currentPackets);
-                jsonView.innerText = JSON.stringify(currentPackets, null, 2);
-              } else if (event === 'done') {
-                clearInterval(timerInterval);
-                const totalElapsed = ((performance.now() - executionStartTime) / 1000).toFixed(2);
-                timerVal.innerText = `${totalElapsed}s`;
-                statusPill.className = 'status-pill done';
-                statusText.innerText = `✓ Execution Complete in ${totalElapsed}s (${currentPackets.length} Packets)`;
-                activeAgentVal.innerText = 'Completed';
-
-                addPacketRow({
-                  seq: currentPackets.length + 1,
-                  timestamp_offset: Number(totalElapsed),
-                  source: "DeepSeek / Agent",
-                  target: "User",
-                  packet_type: "DONE",
-                  summary: `Final synthesis converged and delivered to user (${totalElapsed}s)`,
-                  payload: parsed
-                });
-
-                resultView.innerHTML = formatMarkdown(parsed.final_output);
-                // Flash result tab
-                const resTabBtn = document.getElementById('tab-btn-result');
-                if (resTabBtn) {
-                  resTabBtn.style.color = '#34d399';
-                  resTabBtn.innerText = '💬 Synthesized Result (Ready!)';
-                }
-                break;
-              } else if (event === 'error') {
-                clearInterval(timerInterval);
-                statusPill.className = 'status-pill error';
-                statusText.innerText = `✕ Error: ${parsed.error || 'Execution failed'}`;
-                addPacketRow({
-                  seq: currentPackets.length + 1,
-                  timestamp_offset: ((performance.now() - executionStartTime) / 1000).toFixed(2),
-                  source: "Server",
-                  target: "User",
-                  packet_type: "DONE",
-                  summary: `Execution Error: ${parsed.error || 'Check server logs'}`,
-                  payload: parsed
-                });
-                break;
-              }
-            } catch (err) {
-              console.error('Error handling SSE packet:', err, data);
-            }
+        es.addEventListener('packet', (e) => {
+          try {
+            const parsed = JSON.parse(e.data);
+            currentPackets.push(parsed);
+            addPacketRow(parsed);
+            packetsCount.innerText = String(currentPackets.length);
+            activeAgentVal.innerText = parsed.target || parsed.source || 'Active';
+            highlightSvgNode(parsed.target || parsed.source, parsed.packet_type);
+            seqView.innerText = generateAsciiSequence(currentPackets);
+            jsonView.innerText = JSON.stringify(currentPackets, null, 2);
+          } catch(err) {
+            console.error('Failed to parse SSE packet:', err, e.data);
           }
-        }
-      } catch (err) {
-        if (err.name === 'AbortError') {
-          statusText.innerText = '⏹ Execution cancelled by user';
-        } else {
+        });
+
+        es.addEventListener('done', (e) => {
+          clearInterval(timerInterval);
+          const totalElapsed = ((performance.now() - executionStartTime) / 1000).toFixed(2);
+          timerVal.innerText = `${totalElapsed}s`;
+          statusPill.className = 'status-pill done';
+          statusText.innerText = `✓ Execution Complete in ${totalElapsed}s (${currentPackets.length} Packets)`;
+          activeAgentVal.innerText = 'Completed';
+
+          try {
+            const parsed = JSON.parse(e.data);
+            addPacketRow({
+              seq: currentPackets.length + 1,
+              timestamp_offset: Number(totalElapsed),
+              source: "DeepSeek / Agent",
+              target: "User",
+              packet_type: "DONE",
+              summary: `Final synthesis converged and delivered to user (${totalElapsed}s)`,
+              payload: parsed
+            });
+
+            resultView.innerHTML = formatMarkdown(parsed.final_output);
+          } catch(err) {
+            console.error('Failed to parse done data:', err);
+          }
+
+          const resTabBtn = document.getElementById('tab-btn-result');
+          if (resTabBtn) {
+            resTabBtn.style.color = '#34d399';
+            resTabBtn.innerText = '💬 Synthesized Result (Ready!)';
+          }
+
+          es.close();
+          activeEventSource = null;
+        });
+
+        es.addEventListener('error', (e) => {
+          if (statusPill.classList.contains('done')) {
+            es.close();
+            activeEventSource = null;
+            return;
+          }
+
           clearInterval(timerInterval);
           statusPill.className = 'status-pill error';
-          statusText.innerText = `✕ Connection Error: ${err.message}`;
-          console.error('Fetch execution error:', err);
-        }
+          statusText.innerText = '✕ SSE Connection Interrupted';
+          addPacketRow({
+            seq: currentPackets.length + 1,
+            timestamp_offset: Number(((performance.now() - executionStartTime) / 1000).toFixed(2)),
+            source: "Server",
+            target: "User",
+            packet_type: "DONE",
+            summary: "EventSource disconnected or returned error. Check server logs.",
+            payload: { error: "Stream closed" }
+          });
+          es.close();
+          activeEventSource = null;
+        });
+      } catch (err) {
+        clearInterval(timerInterval);
+        statusPill.className = 'status-pill error';
+        statusText.innerText = `✕ Error initializing EventSource: ${err.message}`;
+        console.error('EventSource error:', err);
       }
     }
 

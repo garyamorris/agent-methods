@@ -140,7 +140,7 @@ def main() -> None:
         asyncio.run(run_benchmark_suite(targets))
     elif cmd in ("visualizer", "web", "ui"):
         from agent_methods.web_server import serve_visualizer
-        port = int(args[1]) if len(args) > 1 and args[1].isdigit() else 8000
+        port = int(args[1]) if len(args) > 1 and args[1].isdigit() else 8080
         serve_visualizer(port=port)
     elif cmd in ("explain", "info") and len(args) > 1:
         print_pattern_explanation(args[1])

@@ -2345,7 +2345,7 @@ board.verified_facts.append(threat_res.final_output)`,
         `).join('');
       }
 
-      document.getElementById('p-mechanisms').innerHTML = p.mechanisms;
+      document.getElementById('p-mechanisms').innerHTML = p.mechanics || p.mechanisms || '';
       document.getElementById('p-code').innerText = p.code;
       document.getElementById('viewport').innerHTML = p.svg;
 
